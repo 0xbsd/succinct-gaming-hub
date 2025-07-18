@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/games", "destination": "/games.html" },
+    { "source": "/proof-puzzle", "destination": "/proof-puzzle.html" },
+    { "source": "/zk-sudoku", "destination": "/sudoku-game.html" },
+    { "source": "/memory-matrix", "destination": "/memory-matrix.html" },
+    { "source": "/zk-flow-state", "destination": "/zk-flow-state.html" },
+    { "source": "/proof-racing", "destination": "/proof-racing.html" },
+    { "source": "/coming-soon", "destination": "/coming-soon.html" },
+    { "source": "/zk-xo", "destination": "/zk_xo_game.html" },
+    { "source": "/zk-rps", "destination": "/zk_rps_game.html" }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
+}

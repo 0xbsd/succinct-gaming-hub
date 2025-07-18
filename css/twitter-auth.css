@@ -1,0 +1,39 @@
+/* twitter-auth.css - Styles for Succinct Gaming Hub Twitter Auth UI */
+.auth-modal {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+  padding: 2rem 1.5rem;
+  max-width: 350px;
+  margin: 2rem auto;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+}
+.auth-modal h2 {
+  color: #6366f1;
+  margin-bottom: 1rem;
+}
+.auth-modal .status {
+  margin: 1rem 0;
+  font-weight: bold;
+}
+.auth-modal .success {
+  color: #10b981;
+}
+.auth-modal .error {
+  color: #ef4444;
+}
+.auth-modal button {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background 0.2s;
+}
+.auth-modal button:hover {
+  background: #4f46e5;
+}

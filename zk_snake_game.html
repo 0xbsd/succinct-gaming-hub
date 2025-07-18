@@ -1,0 +1,1891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZK Snake - Zero-Knowledge Snake Game</title>
+    <style>
+        .zk-proof-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            color: #fff;
+            padding: 0.5rem 1.25rem;
+            border-radius: 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(99,102,241,0.07);
+            position: absolute;
+            right: 2rem;
+            top: -2.2rem;
+            cursor: pointer;
+            z-index: 10;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .zk-proof-badge.animated {
+            animation: zkProofPop 0.6s;
+        }
+        @keyframes zkProofPop {
+            0% { transform: scale(1); box-shadow: 0 2px 8px rgba(99,102,241,0.07); }
+            50% { transform: scale(1.25); box-shadow: 0 4px 16px var(--accent); }
+            100% { transform: scale(1); box-shadow: 0 2px 8px rgba(99,102,241,0.07); }
+        }
+        .zk-proof-badge-icon {
+            font-size: 1.3rem;
+        }
+        .zk-proof-badge-count {
+            font-size: 1.15rem;
+            font-weight: bold;
+            margin-left: 0.3rem;
+        }
+        .zk-proof-log-section {
+            background: var(--dark-card);
+            border: 2px solid var(--border);
+            border-radius: 1rem;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0 0 0;
+        }
+        .zk-proof-log {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        .zk-proof-log-entry {
+            background: var(--dark-lighter);
+            border-left: 4px solid var(--accent);
+            margin-bottom: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.97rem;
+        }
+        .zk-proof-log-entry:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+        .zk-proof-tooltip {
+            position: fixed;
+            bottom: 2.5rem;
+            right: 2.5rem;
+            background: var(--dark-card);
+            color: #fff;
+            border: 2px solid var(--accent);
+            border-radius: 1rem;
+            padding: 1.5rem 2rem;
+            font-size: 1.1rem;
+            box-shadow: 0 8px 32px rgba(16,185,129,0.15);
+            z-index: 2000;
+            max-width: 340px;
+            animation: zkTooltipAppear 0.7s;
+        }
+        @keyframes zkTooltipAppear {
+            0% { opacity: 0; transform: translateY(40px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+    
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --accent: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --dark: #0f172a;
+            --dark-lighter: #1e293b;
+            --dark-card: #334155;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --border: #475569;
+            --snake: #10b981;
+            --food: #f59e0b;
+            --special-food: #8b5cf6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--dark);
+            color: var(--text);
+            min-height: 100vh;
+            padding-top: 80px;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        .nav-header {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--text);
+        }
+
+        /* Animated Background */
+        .snake-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            opacity: 0.02;
+            background-image: 
+                repeating-linear-gradient(45deg, transparent, transparent 20px, var(--snake) 20px, var(--snake) 22px),
+                repeating-linear-gradient(-45deg, transparent, transparent 20px, var(--primary) 20px, var(--primary) 22px);
+            animation: snakeMove 40s linear infinite;
+        }
+
+        @keyframes snakeMove {
+            0% { transform: translateX(0) translateY(0); }
+            100% { transform: translateX(100px) translateY(100px); }
+        }
+
+        /* Main Container */
+        .game-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 3rem;
+            align-items: start;
+        }
+
+        /* Header */
+        .game-header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .game-title {
+            font-size: 4rem;
+            background: linear-gradient(135deg, var(--primary), var(--snake));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .game-subtitle {
+            font-size: 1.3rem;
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+        }
+
+        /* Game Modes */
+        .game-modes {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .mode-btn {
+            padding: 1rem 2rem;
+            background: var(--dark-card);
+            border: 2px solid var(--border);
+            border-radius: 0.75rem;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .mode-btn.active {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .mode-btn:hover:not(.active) {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        /* Main Game Area */
+        .game-board-container {
+            background: var(--dark-lighter);
+            border: 2px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            position: relative;
+        }
+
+        /* Game Stats Bar */
+        .game-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--dark-card);
+            border-radius: 1rem;
+            border: 2px solid var(--border);
+        }
+
+        .stat-group {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-dim);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .score-value {
+            color: var(--warning);
+        }
+
+        .length-value {
+            color: var(--snake);
+        }
+
+        .speed-value {
+            color: var(--accent);
+        }
+
+        /* Game Canvas */
+        .game-canvas-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .game-canvas {
+            border: 3px solid var(--border);
+            border-radius: 1rem;
+            background: var(--dark);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .game-overlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 1rem;
+            z-index: 10;
+        }
+
+        .game-overlay.show {
+            display: flex;
+        }
+
+        .overlay-content {
+            text-align: center;
+            padding: 2rem;
+            background: var(--dark-lighter);
+            border-radius: 1rem;
+            border: 2px solid var(--primary);
+        }
+
+        .overlay-title {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .overlay-message {
+            font-size: 1.1rem;
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+        }
+
+        /* Controls */
+        .game-controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Control Instructions */
+        .control-instructions {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .control-key {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--dark-card);
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .key {
+            padding: 0.25rem 0.5rem;
+            background: var(--dark);
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        /* Side Panel */
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .info-card {
+            background: var(--dark-lighter);
+            border: 2px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+        }
+
+        .info-card h3 {
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.3rem;
+        }
+
+        /* ZK Proof Section */
+        .zk-proof-section {
+            background: var(--dark-card);
+            border: 2px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .proof-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .proof-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--dark);
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .proof-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--text-dim);
+        }
+
+        .proof-indicator.active {
+            background: var(--warning);
+            animation: pulse 1.5s infinite;
+        }
+
+        .proof-indicator.verified {
+            background: var(--accent);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .proof-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .proof-metric {
+            background: var(--dark);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--text-dim);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary);
+            font-family: monospace;
+        }
+
+        /* Leaderboard */
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--dark-card);
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid var(--border);
+        }
+
+        .leaderboard-rank {
+            font-weight: bold;
+            color: var(--primary);
+            min-width: 30px;
+        }
+
+        .leaderboard-score {
+            font-family: monospace;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* ZK Concepts */
+        .zk-concept {
+            background: var(--dark-card);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--snake);
+        }
+
+        .concept-title {
+            font-weight: 600;
+            color: var(--snake);
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .concept-description {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Game Over Modal */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 2rem;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--dark-lighter);
+            border: 2px solid var(--accent);
+            border-radius: 1.5rem;
+            padding: 3rem;
+            text-align: center;
+            max-width: 500px;
+            animation: modalSlide 0.3s ease;
+            position: relative;
+        }
+
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .achievement-icon {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            animation: bounce 1s ease infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 968px) {
+            .game-container {
+                grid-template-columns: 1fr;
+                padding: 0 1rem;
+                gap: 2rem;
+            }
+
+            .game-title {
+                font-size: 2.5rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            body {
+                padding-top: 60px;
+            }
+
+            .game-container {
+                margin: 1rem auto;
+            }
+
+            .game-modes {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .mode-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .game-stats {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .stat-group {
+                justify-content: center;
+            }
+
+            .game-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+
+            .control-instructions {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        /* Special Effects */
+        .food-glow {
+            animation: foodGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes foodGlow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.5) drop-shadow(0 0 10px var(--food)); }
+        }
+
+        .snake-trail {
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        /* Particle Effect */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--accent);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particleFloat 1s ease-out forwards;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.5) translateY(-30px);
+            }
+        }
+
+        /* Loading Effect */
+        .loader {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav-header">
+        <div class="nav-content">
+            <a href="/games.html" class="logo">
+                <span>🎮</span>
+                <span>ZK Gaming Hub</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="games.html" class="nav-link">Games</a>
+                <a href="/games.html" class="nav-link">← Back to Games</a>
+                <a href="/index.html" class="nav-link">Home</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Animated Background -->
+    <div class="snake-bg"></div>
+
+    <div class="game-container">
+        <!-- Header -->
+        <div class="game-header">
+            <h1 class="game-title">
+                <span>🐍</span>
+                <span>ZK Snake</span>
+            </h1>
+            <p class="game-subtitle">Zero-Knowledge Snake - Prove your score without revealing your path!</p>
+            
+            <!-- Game Modes -->
+            <div class="game-modes">
+                <button class="mode-btn active" onclick="setGameMode('classic')" data-mode="classic">
+                    🎯 Classic Mode
+                </button>
+                <button class="mode-btn" onclick="setGameMode('stealth')" data-mode="stealth">
+                    👁️ Stealth Mode
+                </button>
+                <button class="mode-btn" onclick="setGameMode('proof')" data-mode="proof">
+                    🔐 Proof Mode
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Game Area -->
+        <div class="game-board-container">
+            <!-- Game Stats -->
+            <div class="game-stats">
+                <div class="stat-group">
+                    <div class="stat-item">
+                        <span class="stat-label">Score</span>
+                        <span class="stat-value score-value" id="score">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Length</span>
+                        <span class="stat-value length-value" id="length">1</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Speed</span>
+                        <span class="stat-value speed-value" id="speed">1</span>
+                    </div>
+                </div>
+                
+                <div class="stat-group">
+                    <div class="stat-item">
+                        <span class="stat-label">Time</span>
+                        <span class="stat-value" id="timer">00:00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">High Score</span>
+                        <span class="stat-value" id="highScore">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Canvas -->
+            <div class="game-canvas-container">
+                <canvas id="gameCanvas" class="game-canvas" width="600" height="400"></canvas>
+                
+                <!-- Game Overlay -->
+                <div class="game-overlay" id="gameOverlay">
+                    <div class="overlay-content">
+                        <div class="overlay-title" id="overlayTitle">Get Ready!</div>
+                        <div class="overlay-message" id="overlayMessage">Use arrow keys or WASD to control the snake</div>
+                        <button class="btn btn-primary" onclick="startGame()" id="startBtn">
+                            <span>🚀</span>
+                            <span>Start Game</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ZK Proof Section -->
+            <div class="zk-proof-section">
+                <div id="zkProofBadge" class="zk-proof-badge" title="Total ZK Proofs Generated">
+                    <span class="zk-proof-badge-icon">🔐</span>
+                    <span class="zk-proof-badge-count" id="zkProofCount">0</span>
+                </div>
+                <div class="proof-header">
+                    <h4>🔐 Zero-Knowledge Proof</h4>
+                    <div class="proof-status">
+                        <div class="proof-indicator" id="proofIndicator"></div>
+                        <span id="proofStatusText">Ready to generate proof</span>
+                    </div>
+                </div>
+
+                <div class="proof-metrics">
+                    <div class="proof-metric">
+                        <div class="metric-label">Position Hash</div>
+                        <div class="metric-value" id="positionHash">--</div>
+                    </div>
+                    <div class="proof-metric">
+                        <div class="metric-label">Score Proof</div>
+                        <div class="metric-value" id="scoreProof">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ZK Proof Log -->
+            <div class="zk-proof-log-section">
+                <h5 style="color: var(--accent); margin-bottom: 0.5rem;">📝 Proof Log</h5>
+                <ul id="zkProofLog" class="zk-proof-log"></ul>
+            </div>
+
+            <!-- ZK Proof Detail Modal -->
+            <div class="modal" id="zkProofDetailModal">
+                <div class="modal-content" style="max-width: 400px;">
+                    <h3 style="color: var(--primary); margin-bottom: 1rem;">🔍 Proof Details</h3>
+                    <div id="zkProofDetailContent"></div>
+                    <button class="btn btn-secondary" onclick="closeProofDetailModal()" style="margin-top: 1.5rem;">Close</button>
+                </div>
+            </div>
+
+            <!-- ZK Onboarding Tooltip -->
+            <div id="zkProofTooltip" class="zk-proof-tooltip" style="display:none;">
+                Every time you eat food, you generate a Zero-Knowledge Proof! Click the badge or log to learn more.
+                <button onclick="hideZKProofTooltip()" class="btn btn-secondary" style="margin-top:0.75rem;">Got it!</button>
+            </div>
+
+            <!-- Game Controls -->
+            <div class="game-controls">
+                <button class="btn btn-secondary" onclick="pauseGame()" id="pauseBtn" disabled>
+                    <span>⏸️</span>
+                    <span>Pause</span>
+                </button>
+                <button class="btn btn-secondary" onclick="resetGame()">
+                    <span>🔄</span>
+                    <span>Reset</span>
+                </button>
+                <button class="btn btn-primary" onclick="generateProof()" id="proofBtn" disabled>
+                    <span>⚡</span>
+                    <span>Generate Proof</span>
+                </button>
+            </div>
+
+            <!-- Control Instructions -->
+            <div class="control-instructions">
+                <div class="control-key">
+                    <span class="key">↑ ↓ ← →</span>
+                    <span>Arrow Keys</span>
+                </div>
+                <div class="control-key">
+                    <span class="key">WASD</span>
+                    <span>Alternative</span>
+                </div>
+                <div class="control-key">
+                    <span class="key">SPACE</span>
+                    <span>Pause</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Side Panel -->
+        <div class="side-panel">
+            <!-- Leaderboard -->
+            <div class="info-card">
+                <h3>🏆 High Scores</h3>
+                <div id="leaderboard">
+                    <div class="leaderboard-item">
+                        <span class="leaderboard-rank">1</span>
+                        <span>Snake Master</span>
+                        <span class="leaderboard-score">2850</span>
+                    </div>
+                    <div class="leaderboard-item">
+                        <span class="leaderboard-rank">2</span>
+                        <span>ZK Pro</span>
+                        <span class="leaderboard-score">2340</span>
+                    </div>
+                    <div class="leaderboard-item">
+                        <span class="leaderboard-rank">3</span>
+                        <span>Proof Player</span>
+                        <span class="leaderboard-score">1920</span>
+                    </div>
+                    <div class="leaderboard-item">
+                        <span class="leaderboard-rank">4</span>
+                        <span>Crypto Snake</span>
+                        <span class="leaderboard-score">1650</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ZK Concepts -->
+            <div class="info-card">
+                <h3>🧠 ZK Concepts</h3>
+                
+                <div class="zk-concept">
+                    <div class="concept-title">Position Proofs</div>
+                    <div class="concept-description">
+                        Prove your snake reached certain positions without revealing the exact path taken.
+                    </div>
+                </div>
+
+                <div class="zk-concept">
+                    <div class="concept-title">Score Verification</div>
+                    <div class="concept-description">
+                        Verify your final score is legitimate without showing every move you made.
+                    </div>
+                </div>
+
+                <div class="zk-concept">
+                    <div class="concept-title">Game State Integrity</div>
+                    <div class="concept-description">
+                        Prove the game was played fairly without revealing your strategy or patterns.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Mode Info -->
+            <div class="info-card" id="modeInfo">
+                <h3>🎮 Current Mode</h3>
+                
+                <div id="modeDescription">
+                    <div style="color: var(--accent); font-weight: 600; margin-bottom: 0.75rem;">Classic Mode</div>
+                    <ul style="list-style: none; color: var(--text-dim); font-size: 0.9rem;">
+                        <li style="padding: 0.25rem 0; padding-left: 1.5rem; position: relative;">
+                            <span style="position: absolute; left: 0; color: var(--accent);">→</span>
+                            Traditional snake gameplay
+                        </li>
+                        <li style="padding: 0.25rem 0; padding-left: 1.5rem; position: relative;">
+                            <span style="position: absolute; left: 0; color: var(--accent);">→</span>
+                            Learn basic ZK proof concepts
+                        </li>
+                        <li style="padding: 0.25rem 0; padding-left: 1.5rem; position: relative;">
+                            <span style="position: absolute; left: 0; color: var(--accent);">→</span>
+                            Perfect for beginners
+                        </li>
+                        <li style="padding: 0.25rem 0; padding-left: 1.5rem; position: relative;">
+                            <span style="position: absolute; left: 0; color: var(--accent);">→</span>
+                            Real-time proof generation
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div class="modal" id="gameOverModal">
+        <div class="modal-content">
+            <div class="achievement-icon" id="achievementIcon">🐍</div>
+            <h2 style="font-size: 2.5rem; margin-bottom: 1rem;" id="gameOverTitle">Game Over!</h2>
+            <p style="color: var(--text-dim); margin-bottom: 2rem;" id="gameOverDescription">
+                You've successfully generated a Zero-Knowledge proof of your gameplay!
+            </p>
+            
+            <div style="background: var(--dark); padding: 2rem; border-radius: 1rem; margin-bottom: 2rem;">
+                <h4 style="color: var(--primary); margin-bottom: 1rem;">📊 Game Statistics</h4>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                        <span style="color: var(--text-dim);">Final Score</span>
+                        <span style="font-weight: 600; color: var(--warning);" id="modalScore">0</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                        <span style="color: var(--text-dim);">Snake Length</span>
+                        <span style="font-weight: 600; color: var(--snake);" id="modalLength">1</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                        <span style="color: var(--text-dim);">Time Played</span>
+                        <span style="font-weight: 600; color: var(--primary);" id="modalTime">00:00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                        <span style="color: var(--text-dim);">ZK Points</span>
+                        <span style="font-weight: 600; color: var(--accent);" id="modalZKPoints">+0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button class="btn btn-secondary" onclick="shareScore()">
+                    <span>📋</span>
+                    <span>Share Score</span>
+                </button>
+                <button class="btn btn-primary" onclick="playAgain()">
+                    <span>🎮</span>
+                    <span>Play Again</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- ZK Proof UI/Log State ---
+        let zkProofLog = [];
+        let zkProofTooltipShown = false;
+
+        function showZKProofTooltip() {
+            if (!zkProofTooltipShown) {
+                document.getElementById('zkProofTooltip').style.display = 'block';
+                zkProofTooltipShown = true;
+                localStorage.setItem('zk-snake-zk-tooltip', '1');
+            }
+        }
+        function hideZKProofTooltip() {
+            document.getElementById('zkProofTooltip').style.display = 'none';
+        }
+        function animateZKProofBadge() {
+            const badge = document.getElementById('zkProofBadge');
+            badge.classList.add('animated');
+            setTimeout(() => badge.classList.remove('animated'), 600);
+        }
+        function updateZKProofCount() {
+            document.getElementById('zkProofCount').textContent = gameStats.zkProofsGenerated;
+        }
+        function addZKProofLogEntry(type, details) {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = { type, details, timestamp };
+            zkProofLog.unshift(entry);
+            if (zkProofLog.length > 10) zkProofLog.pop();
+            renderZKProofLog();
+        }
+        function renderZKProofLog() {
+            const log = document.getElementById('zkProofLog');
+            log.innerHTML = zkProofLog.map((entry, i) =>
+                `<li class="zk-proof-log-entry" onclick="showProofDetailModal(${i})">
+                    <span style="margin-right:0.5rem;">${entry.type === 'score' ? '🏅' : '📍'}</span>
+                    <span>${entry.type === 'score' ? 'Score Proof' : 'Position Proof'} at ${entry.timestamp}</span>
+                </li>`
+            ).join('');
+        }
+        function showProofDetailModal(idx) {
+            const entry = zkProofLog[idx];
+            if (!entry) return;
+            let html = '';
+            if (entry.type === 'score') {
+                html = `<strong>Score Proof</strong><br><br>
+                    <span style='color:var(--accent)'>Proved you reached score <b>${entry.details.score}</b> with length <b>${entry.details.length}</b> at ${entry.timestamp}.</span><br><br>
+                    <span style='color:var(--text-dim)'>Zero-Knowledge: No path or moves revealed!</span>`;
+            } else if (entry.type === 'position') {
+                html = `<strong>Position Proof</strong><br><br>
+                    <span style='color:var(--accent)'>Proved snake was at (<b>${entry.details.x},${entry.details.y}</b>) at ${entry.timestamp}.</span><br><br>
+                    <span style='color:var(--text-dim)'>Zero-Knowledge: No path or score revealed!</span>`;
+            }
+            document.getElementById('zkProofDetailContent').innerHTML = html;
+            document.getElementById('zkProofDetailModal').classList.add('show');
+        }
+        function closeProofDetailModal() {
+            document.getElementById('zkProofDetailModal').classList.remove('show');
+        }
+        // Show tooltip on first proof ever
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!localStorage.getItem('zk-snake-zk-tooltip')) {
+                setTimeout(showZKProofTooltip, 1800);
+            }
+            updateZKProofCount();
+        });
+        // Badge click opens tooltip
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('zkProofBadge').onclick = showZKProofTooltip;
+        });
+        // Game State
+        let gameState = {
+            snake: [{ x: 10, y: 10 }],
+            direction: { x: 0, y: 0 },
+            food: { x: 15, y: 15 },
+            specialFood: null,
+            score: 0,
+            length: 1,
+            speed: 1,
+            gameRunning: false,
+            gamePaused: false,
+            gameMode: 'classic',
+            startTime: 0,
+            lastMoveTime: 0,
+            moveInterval: 150,
+            canvas: null,
+            ctx: null,
+            gridSize: 20,
+            pathHistory: [],
+            proofData: {
+                positions: [],
+                scores: [],
+                timestamps: []
+            }
+        };
+
+        // Game statistics
+        let gameStats = {
+            highScore: parseInt(localStorage.getItem('zk-snake-high-score') || '0'),
+            totalGames: parseInt(localStorage.getItem('zk-snake-total-games') || '0'),
+            totalScore: parseInt(localStorage.getItem('zk-snake-total-score') || '0'),
+            zkProofsGenerated: parseInt(localStorage.getItem('zk-snake-proofs') || '0')
+        };
+
+        // Game modes configuration
+        const gameModes = {
+            classic: {
+                name: 'Classic Mode',
+                description: 'Traditional snake with ZK proof generation',
+                features: [
+                    'Traditional snake gameplay',
+                    'Learn basic ZK proof concepts',
+                    'Perfect for beginners',
+                    'Real-time proof generation'
+                ]
+            },
+            stealth: {
+                name: 'Stealth Mode',
+                description: 'Snake position is partially hidden',
+                features: [
+                    'Snake tail becomes invisible',
+                    'Only head position shown',
+                    'Enhanced privacy protection',
+                    'Advanced ZK concepts'
+                ]
+            },
+            proof: {
+                name: 'Proof Mode',
+                description: 'Full zero-knowledge gameplay',
+                features: [
+                    'All moves are verified by ZK proofs',
+                    'Score proven without revealing path',
+                    'Ultimate privacy mode',
+                    'Master-level ZK gaming'
+                ]
+            }
+        };
+
+        let timerInterval;
+
+        // Initialize game
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeGame();
+            updateHighScore();
+            updateModeDescription();
+        });
+
+        function initializeGame() {
+            gameState.canvas = document.getElementById('gameCanvas');
+            gameState.ctx = gameState.canvas.getContext('2d');
+            
+            // Set up event listeners
+            document.addEventListener('keydown', handleKeyPress);
+            
+            // Initial render
+            renderGame();
+        }
+
+        function handleKeyPress(event) {
+            if (!gameState.gameRunning && event.code !== 'Space') return;
+            
+            const { direction } = gameState;
+            
+            switch (event.code) {
+                case 'ArrowUp':
+                case 'KeyW':
+                    if (direction.y === 0) {
+                        gameState.direction = { x: 0, y: -1 };
+                    }
+                    break;
+                case 'ArrowDown':
+                case 'KeyS':
+                    if (direction.y === 0) {
+                        gameState.direction = { x: 0, y: 1 };
+                    }
+                    break;
+                case 'ArrowLeft':
+                case 'KeyA':
+                    if (direction.x === 0) {
+                        gameState.direction = { x: -1, y: 0 };
+                    }
+                    break;
+                case 'ArrowRight':
+                case 'KeyD':
+                    if (direction.x === 0) {
+                        gameState.direction = { x: 1, y: 0 };
+                    }
+                    break;
+                case 'Space':
+                    event.preventDefault();
+                    pauseGame();
+                    break;
+            }
+        }
+
+        function startGame() {
+            // Reset game state
+            gameState.snake = [{ x: 10, y: 10 }];
+            gameState.direction = { x: 0, y: 0 };
+            gameState.score = 0;
+            gameState.length = 1;
+            gameState.speed = 1;
+            gameState.gameRunning = true;
+            gameState.gamePaused = false;
+            gameState.startTime = Date.now();
+            gameState.pathHistory = [];
+            gameState.proofData = {
+                positions: [],
+                scores: [],
+                timestamps: []
+            };
+            
+            // Generate initial food
+            generateFood();
+            
+            // Hide overlay
+            document.getElementById('gameOverlay').classList.remove('show');
+            
+            // Update UI
+            updateGameStats();
+            document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('proofBtn').disabled = true;
+            
+            // Start timer
+            startTimer();
+            
+            // Start game loop
+            gameLoop();
+        }
+
+        function gameLoop() {
+            if (!gameState.gameRunning || gameState.gamePaused) return;
+            
+            const currentTime = Date.now();
+            
+            if (currentTime - gameState.lastMoveTime >= gameState.moveInterval) {
+                updateSnake();
+                gameState.lastMoveTime = currentTime;
+                
+                // Record position for ZK proof
+                recordPositionForProof();
+            }
+            
+            renderGame();
+            
+            if (gameState.gameRunning) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function updateSnake() {
+            if (gameState.direction.x === 0 && gameState.direction.y === 0) return;
+            
+            const head = { ...gameState.snake[0] };
+            head.x += gameState.direction.x;
+            head.y += gameState.direction.y;
+            
+            // Check wall collision
+            const canvasWidth = gameState.canvas.width / gameState.gridSize;
+            const canvasHeight = gameState.canvas.height / gameState.gridSize;
+            
+            if (head.x < 0 || head.x >= canvasWidth || head.y < 0 || head.y >= canvasHeight) {
+                gameOver();
+                return;
+            }
+            
+            // Check self collision
+            if (gameState.snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+                gameOver();
+                return;
+            }
+            
+            gameState.snake.unshift(head);
+            
+            // Check food collision
+            if (head.x === gameState.food.x && head.y === gameState.food.y) {
+                eatFood();
+            } else if (gameState.specialFood && head.x === gameState.specialFood.x && head.y === gameState.specialFood.y) {
+                eatSpecialFood();
+            } else {
+                gameState.snake.pop();
+            }
+        }
+
+        function eatFood() {
+            gameState.score += 10 * gameState.speed;
+            gameState.length = gameState.snake.length;
+            
+            // Increase speed every 5 foods
+            if (gameState.length % 5 === 0) {
+                gameState.speed++;
+                gameState.moveInterval = Math.max(50, gameState.moveInterval - 10);
+            }
+            
+            generateFood();
+            generateSpecialFood();
+            updateGameStats();
+            
+            // Generate proof for score increase
+            generateScoreProof();
+            
+            // Create eating effect
+            createParticleEffect(gameState.food.x, gameState.food.y);
+        }
+
+        function eatSpecialFood() {
+            gameState.score += 50 * gameState.speed;
+            gameState.specialFood = null;
+            updateGameStats();
+            
+            // Create special eating effect
+            createParticleEffect(gameState.specialFood?.x || 0, gameState.specialFood?.y || 0, true);
+        }
+
+        function generateFood() {
+            const canvasWidth = gameState.canvas.width / gameState.gridSize;
+            const canvasHeight = gameState.canvas.height / gameState.gridSize;
+            
+            do {
+                gameState.food = {
+                    x: Math.floor(Math.random() * canvasWidth),
+                    y: Math.floor(Math.random() * canvasHeight)
+                };
+            } while (gameState.snake.some(segment => 
+                segment.x === gameState.food.x && segment.y === gameState.food.y
+            ));
+        }
+
+        function generateSpecialFood() {
+            // 20% chance to generate special food
+            if (Math.random() < 0.2 && !gameState.specialFood) {
+                const canvasWidth = gameState.canvas.width / gameState.gridSize;
+                const canvasHeight = gameState.canvas.height / gameState.gridSize;
+                
+                do {
+                    gameState.specialFood = {
+                        x: Math.floor(Math.random() * canvasWidth),
+                        y: Math.floor(Math.random() * canvasHeight)
+                    };
+                } while (
+                    gameState.snake.some(segment => 
+                        segment.x === gameState.specialFood.x && segment.y === gameState.specialFood.y
+                    ) ||
+                    (gameState.specialFood.x === gameState.food.x && gameState.specialFood.y === gameState.food.y)
+                );
+            }
+        }
+
+        function renderGame() {
+            const { ctx, canvas, gridSize } = gameState;
+            
+            // Clear canvas
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid (subtle)
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 0.5;
+            for (let x = 0; x <= canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            // Draw snake
+            drawSnake();
+            
+            // Draw food
+            drawFood();
+            
+            // Draw special food
+            if (gameState.specialFood) {
+                drawSpecialFood();
+            }
+        }
+
+        function drawSnake() {
+            const { ctx, gridSize, snake } = gameState;
+            
+            snake.forEach((segment, index) => {
+                const x = segment.x * gridSize;
+                const y = segment.y * gridSize;
+                
+                if (index === 0) {
+                    // Draw head
+                    ctx.fillStyle = '#10b981';
+                    ctx.fillRect(x + 2, y + 2, gridSize - 4, gridSize - 4);
+                    
+                    // Add eyes
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(x + 6, y + 6, 3, 3);
+                    ctx.fillRect(x + 11, y + 6, 3, 3);
+                } else {
+                    // Draw body
+                    const opacity = gameState.gameMode === 'stealth' ? 
+                        Math.max(0.1, 1 - (index * 0.1)) : 1;
+                    
+                    ctx.fillStyle = `rgba(16, 185, 129, ${opacity})`;
+                    ctx.fillRect(x + 1, y + 1, gridSize - 2, gridSize - 2);
+                }
+            });
+        }
+
+        function drawFood() {
+            const { ctx, gridSize, food } = gameState;
+            const x = food.x * gridSize;
+            const y = food.y * gridSize;
+            
+            // Draw food with glow effect
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(x + 3, y + 3, gridSize - 6, gridSize - 6);
+            
+            // Add glow
+            ctx.shadowColor = '#f59e0b';
+            ctx.shadowBlur = 10;
+            ctx.fillRect(x + 3, y + 3, gridSize - 6, gridSize - 6);
+            ctx.shadowBlur = 0;
+        }
+
+        function drawSpecialFood() {
+            const { ctx, gridSize, specialFood } = gameState;
+            const x = specialFood.x * gridSize;
+            const y = specialFood.y * gridSize;
+            
+            // Draw special food with animated glow
+            const time = Date.now() * 0.005;
+            const intensity = 0.5 + 0.5 * Math.sin(time);
+            
+            ctx.fillStyle = '#8b5cf6';
+            ctx.fillRect(x + 2, y + 2, gridSize - 4, gridSize - 4);
+            
+            // Add animated glow
+            ctx.shadowColor = '#8b5cf6';
+            ctx.shadowBlur = 15 * intensity;
+            ctx.fillRect(x + 2, y + 2, gridSize - 4, gridSize - 4);
+            ctx.shadowBlur = 0;
+        }
+
+        function createParticleEffect(x, y, special = false) {
+            const canvas = gameState.canvas;
+            const rect = canvas.getBoundingClientRect();
+            
+            for (let i = 0; i < 8; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = (rect.left + x * gameState.gridSize + gameState.gridSize / 2) + 'px';
+                particle.style.top = (rect.top + y * gameState.gridSize + gameState.gridSize / 2) + 'px';
+                particle.style.background = special ? '#8b5cf6' : '#f59e0b';
+                
+                document.body.appendChild(particle);
+                
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.remove();
+                    }
+                }, 1000);
+            }
+        }
+
+        function recordPositionForProof() {
+            const head = gameState.snake[0];
+            gameState.proofData.positions.push({ ...head, timestamp: Date.now() });
+            gameState.proofData.scores.push(gameState.score);
+            gameState.proofData.timestamps.push(Date.now());
+            
+            // Keep only last 100 records for performance
+            if (gameState.proofData.positions.length > 100) {
+                gameState.proofData.positions.shift();
+                gameState.proofData.scores.shift();
+                gameState.proofData.timestamps.shift();
+            }
+        }
+
+        function generateScoreProof() {
+    // --- ZK Proof UX ---
+    gameStats.zkProofsGenerated++;
+    updateZKProofCount();
+    animateZKProofBadge();
+    addZKProofLogEntry('score', { score: gameState.score, length: gameState.length });
+    if (!zkProofTooltipShown && !localStorage.getItem('zk-snake-zk-tooltip')) showZKProofTooltip();
+            const proofIndicator = document.getElementById('proofIndicator');
+            const proofStatusText = document.getElementById('proofStatusText');
+            const scoreProof = document.getElementById('scoreProof');
+            
+            proofIndicator.className = 'proof-indicator active';
+            proofStatusText.textContent = 'Generating score proof...';
+            
+            setTimeout(() => {
+                const hash = generateProofHash('score', gameState.score, gameState.length);
+                scoreProof.textContent = hash;
+                
+                proofIndicator.className = 'proof-indicator verified';
+                proofStatusText.textContent = 'Score verified';
+            }, 500);
+        }
+
+        function generatePositionProof() {
+    // --- ZK Proof UX ---
+    addZKProofLogEntry('position', { x: gameState.snake[0].x, y: gameState.snake[0].y });
+            const positionHash = document.getElementById('positionHash');
+            const head = gameState.snake[0];
+            const hash = generateProofHash('position', head.x, head.y);
+            positionHash.textContent = hash;
+        }
+
+        function generateProofHash(type, ...data) {
+            const input = `${type}_${data.join('_')}_${Date.now()}`;
+            let hash = 0;
+            for (let i = 0; i < input.length; i++) {
+                hash = ((hash << 5) - hash) + input.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return `0x${Math.abs(hash).toString(16).padStart(6, '0').substr(0, 6)}`;
+        }
+
+        function updateGameStats() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('length').textContent = gameState.length;
+            document.getElementById('speed').textContent = gameState.speed;
+            
+            // Generate position proof
+            if (gameState.gameRunning) {
+                generatePositionProof();
+            }
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('timer').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function pauseGame() {
+            if (!gameState.gameRunning) return;
+            
+            gameState.gamePaused = !gameState.gamePaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+            
+            if (gameState.gamePaused) {
+                pauseBtn.innerHTML = '<span>▶️</span><span>Resume</span>';
+                
+                // Show pause overlay
+                const overlay = document.getElementById('gameOverlay');
+                const overlayTitle = document.getElementById('overlayTitle');
+                const overlayMessage = document.getElementById('overlayMessage');
+                const startBtn = document.getElementById('startBtn');
+                
+                overlayTitle.textContent = 'Game Paused';
+                overlayMessage.textContent = 'Click Resume or press Space to continue';
+                startBtn.innerHTML = '<span>▶️</span><span>Resume</span>';
+                startBtn.onclick = () => pauseGame();
+                overlay.classList.add('show');
+            } else {
+                pauseBtn.innerHTML = '<span>⏸️</span><span>Pause</span>';
+                document.getElementById('gameOverlay').classList.remove('show');
+                gameLoop();
+            }
+        }
+
+        function resetGame() {
+            gameState.gameRunning = false;
+            gameState.gamePaused = false;
+            
+            if (timerInterval) clearInterval(timerInterval);
+            
+            // Reset UI
+            document.getElementById('gameOverlay').classList.add('show');
+            document.getElementById('overlayTitle').textContent = 'Get Ready!';
+            document.getElementById('overlayMessage').textContent = 'Use arrow keys or WASD to control the snake';
+            document.getElementById('startBtn').innerHTML = '<span>🚀</span><span>Start Game</span>';
+            document.getElementById('startBtn').onclick = startGame;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('proofBtn').disabled = true;
+            
+            // Reset stats display
+            document.getElementById('score').textContent = '0';
+            document.getElementById('length').textContent = '1';
+            document.getElementById('speed').textContent = '1';
+            document.getElementById('timer').textContent = '00:00';
+            
+            // Reset proof displays
+            document.getElementById('proofIndicator').className = 'proof-indicator';
+            document.getElementById('proofStatusText').textContent = 'Ready to generate proof';
+            document.getElementById('positionHash').textContent = '--';
+            document.getElementById('scoreProof').textContent = '--';
+        }
+
+        function gameOver() {
+            gameState.gameRunning = false;
+            
+            if (timerInterval) clearInterval(timerInterval);
+            
+            // Update statistics
+            gameStats.totalGames++;
+            gameStats.totalScore += gameState.score;
+            
+            if (gameState.score > gameStats.highScore) {
+                gameStats.highScore = gameState.score;
+            }
+            
+            saveGameStats();
+            updateHighScore();
+            
+            // Enable proof generation
+            document.getElementById('proofBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            
+            // Show game over modal after a delay
+            setTimeout(() => {
+                showGameOverModal();
+            }, 1000);
+        }
+
+        function showGameOverModal() {
+            const modal = document.getElementById('gameOverModal');
+            const achievementIcon = document.getElementById('achievementIcon');
+            const gameOverTitle = document.getElementById('gameOverTitle');
+            const gameOverDescription = document.getElementById('gameOverDescription');
+            
+            // Determine achievement level
+            if (gameState.score >= 1000) {
+                achievementIcon.textContent = '🏆';
+                gameOverTitle.textContent = 'Snake Master!';
+                gameOverDescription.textContent = 'Incredible! You\'ve achieved mastery in ZK Snake!';
+            } else if (gameState.score >= 500) {
+                achievementIcon.textContent = '⭐';
+                gameOverTitle.textContent = 'Great Game!';
+                gameOverDescription.textContent = 'Excellent performance! You\'re becoming a ZK Snake expert!';
+            } else {
+                achievementIcon.textContent = '🐍';
+                gameOverTitle.textContent = 'Game Over!';
+                gameOverDescription.textContent = 'Good try! Practice makes perfect in ZK Snake!';
+            }
+            
+            // Update modal stats
+            const timeElapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+            const minutes = Math.floor(timeElapsed / 60);
+            const seconds = timeElapsed % 60;
+            
+            document.getElementById('modalScore').textContent = gameState.score;
+            document.getElementById('modalLength').textContent = gameState.length;
+            document.getElementById('modalTime').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('modalZKPoints').textContent = `+${calculateZKPoints()}`;
+            
+            modal.classList.add('show');
+        }
+
+        function calculateZKPoints() {
+            let points = Math.floor(gameState.score / 10);
+            
+            // Length bonus
+            points += gameState.length * 2;
+            
+            // Speed bonus
+            points += gameState.speed * 5;
+            
+            // Game mode bonus
+            if (gameState.gameMode === 'stealth') points += 25;
+            if (gameState.gameMode === 'proof') points += 50;
+            
+            return points;
+        }
+
+        function generateProof() {
+            const btn = document.getElementById('proofBtn');
+            btn.innerHTML = '<span class="loader"></span><span>Generating...</span>';
+            btn.disabled = true;
+            
+            gameStats.zkProofsGenerated++;
+            
+            setTimeout(() => {
+                // Generate comprehensive game proof
+                const gameProof = {
+                    finalScore: gameState.score,
+                    snakeLength: gameState.length,
+                    gameTime: Date.now() - gameState.startTime,
+                    pathHash: generateProofHash('path', ...gameState.proofData.positions.flat()),
+                    scoreHash: generateProofHash('scores', ...gameState.proofData.scores),
+                    integrityHash: generateProofHash('integrity', gameState.gameMode, gameState.speed)
+                };
+                
+                // Update proof displays
+                document.getElementById('positionHash').textContent = gameProof.pathHash;
+                document.getElementById('scoreProof').textContent = gameProof.scoreHash;
+                
+                document.getElementById('proofIndicator').className = 'proof-indicator verified';
+                document.getElementById('proofStatusText').textContent = 'Game proof verified!';
+                
+                btn.innerHTML = '<span>⚡</span><span>Generate Proof</span>';
+                
+                saveGameStats();
+                
+                // Show success animation
+                createConfetti();
+            }, 2000);
+        }
+
+        function createConfetti() {
+            const colors = ['#10b981', '#f59e0b', '#8b5cf6', '#6366f1'];
+            const confettiCount = 30;
+            
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.style.position = 'fixed';
+                confetti.style.width = '8px';
+                confetti.style.height = '8px';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.top = '-10px';
+                confetti.style.borderRadius = '50%';
+                confetti.style.pointerEvents = 'none';
+                confetti.style.zIndex = '9999';
+                
+                document.body.appendChild(confetti);
+                
+                // Animate falling
+                let pos = -10;
+                const fall = setInterval(() => {
+                    pos += 3 + Math.random() * 2;
+                    confetti.style.top = pos + 'px';
+                    confetti.style.transform = `rotate(${pos * 2}deg)`;
+                    
+                    if (pos > window.innerHeight) {
+                        clearInterval(fall);
+                        confetti.remove();
+                    }
+                }, 20);
+            }
+        }
+
+        function setGameMode(mode) {
+            gameState.gameMode = mode;
+            
+            // Update UI
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            const activeBtn = document.querySelector(`[data-mode="${mode}"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+            
+            updateModeDescription();
+            
+            // Reset game if running
+            if (gameState.gameRunning) {
+                resetGame();
+            }
+        }
+
+        function updateModeDescription() {
+            const modeDescription = document.getElementById('modeDescription');
+            const mode = gameModes[gameState.gameMode];
+            
+            modeDescription.innerHTML = `
+                <div style="color: var(--accent); font-weight: 600; margin-bottom: 0.75rem;">${mode.name}</div>
+                <ul style="list-style: none; color: var(--text-dim); font-size: 0.9rem;">
+                    ${mode.features.map(feature => `
+                        <li style="padding: 0.25rem 0; padding-left: 1.5rem; position: relative;">
+                            <span style="position: absolute; left: 0; color: var(--accent);">→</span>
+                            ${feature}
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+        }
+
+        function updateHighScore() {
+            document.getElementById('highScore').textContent = gameStats.highScore;
+        }
+
+        function saveGameStats() {
+            try {
+                localStorage.setItem('zk-snake-high-score', gameStats.highScore.toString());
+                localStorage.setItem('zk-snake-total-games', gameStats.totalGames.toString());
+                localStorage.setItem('zk-snake-total-score', gameStats.totalScore.toString());
+                localStorage.setItem('zk-snake-proofs', gameStats.zkProofsGenerated.toString());
+            } catch (error) {
+                console.warn('Failed to save game stats:', error);
+            }
+        }
+
+        function shareScore() {
+            const text = `I just scored ${gameState.score} points in ZK Snake! 🐍\n\nSnake Length: ${gameState.length}\nMode: ${gameModes[gameState.gameMode].name}\n\nCan you beat my score? Play now!`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'ZK Snake High Score',
+                    text: text,
+                    url: window.location.href
+                }).catch(console.error);
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(text + '\n' + window.location.href).then(() => {
+                    alert('Score shared! Link copied to clipboard.');
+                }).catch(() => {
+                    alert('Share this: ' + text);
+                });
+            } else {
+                alert('Share this: ' + text);
+            }
+        }
+
+        function playAgain() {
+            document.getElementById('gameOverModal').classList.remove('show');
+            resetGame();
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                document.getElementById('gameOverModal').classList.remove('show');
+            }
+        });
+
+        // Enhanced error handling
+        window.addEventListener('error', (e) => {
+            console.error('ZK Snake error:', e.error);
+            try {
+                if (gameState.gameRunning) {
+                    resetGame();
+                }
+            } catch (resetError) {
+                console.error('Failed to reset game after error:', resetError);
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+        });
+
+        console.log('🐍 ZK Snake loaded successfully!');
+        console.log('Controls: Arrow keys or WASD to move, Space to pause');
+    </script>
+</body>
+</html>

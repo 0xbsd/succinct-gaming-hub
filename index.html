@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZK Gaming Hub - Learn Zero-Knowledge Through Play</title>
+    <meta name="description" content="Welcome to ZK Gaming Hub! Play and learn Zero-Knowledge proofs, cryptography, and privacy tech through fun browser games and interactive demos. Master ZK concepts while having fun.">
+    <!-- Open Graph Meta Tags for SEO & Social Sharing -->
+    <meta property="og:title" content="ZK Gaming Hub - Zero Knowledge Games & Learning">
+    <meta property="og:description" content="Play and learn Zero-Knowledge proofs, cryptography, and privacy tech through fun browser games and interactive demos. Master ZK concepts while having fun.">
+    <meta property="og:image" content="images/games/zk_rps.png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sp1-gaming-hub.vercel.app">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ZK Gaming Hub - Zero Knowledge Games & Learning">
+    <meta name="twitter:description" content="Play and learn Zero-Knowledge proofs, cryptography, and privacy tech through fun browser games and interactive demos. Master ZK concepts while having fun.">
+    <meta name="twitter:image" content="images/games/zk_rps.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --accent: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --dark: #0f172a;
+            --dark-lighter: #1e293b;
+            --dark-card: #334155;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --border: #475569;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--dark), var(--dark-lighter));
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .hero-bg {
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+            animation: bgMove 20s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes bgMove {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(5deg); }
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            z-index: 1000;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            padding-top: 80px;
+        }
+
+        .hero-logo {
+            font-size: 5rem;
+            margin-bottom: 2rem;
+            animation: bounce 3s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .hero-title {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            font-weight: bold;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            color: var(--text-dim);
+            margin-bottom: 1rem;
+            max-width: 600px;
+        }
+
+        .hero-hook {
+            font-size: 1.2rem;
+            color: var(--accent);
+            margin-bottom: 3rem;
+            font-style: italic;
+        }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 3rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            text-decoration: none;
+            border-radius: 1rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Demo Section */
+        .demo-section {
+            max-width: 800px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+        }
+
+        .demo-card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .demo-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-5px);
+        }
+
+        .demo-title {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .demo-subtitle {
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+        }
+
+        .demo-interactive {
+            background: var(--dark-card);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 2px solid var(--border);
+        }
+
+        .demo-step {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: var(--dark);
+            border-radius: 0.5rem;
+            border-left: 4px solid var(--accent);
+        }
+
+        .demo-input {
+            padding: 1rem;
+            background: var(--dark);
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text);
+            font-size: 1rem;
+            width: 100%;
+            max-width: 300px;
+            margin: 1rem;
+        }
+
+        .demo-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .demo-button {
+            padding: 0.75rem 2rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 0.5rem;
+        }
+
+        .demo-button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .demo-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .demo-result {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--accent);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            color: var(--accent);
+            display: none;
+        }
+
+        .demo-result.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Concepts Section */
+        .concepts-section {
+            max-width: 1200px;
+            margin: 6rem auto;
+            padding: 0 2rem;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .concepts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .concept-card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .concept-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .concept-card:hover::before {
+            left: 100%;
+        }
+
+        .concept-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-5px);
+        }
+
+        .concept-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .concept-title {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .concept-description {
+            color: var(--text-dim);
+            margin-bottom: 1rem;
+        }
+
+        .concept-example {
+            font-size: 0.9rem;
+            color: var(--accent);
+            font-style: italic;
+        }
+
+        /* Learning Path Section */
+        .learning-path {
+            max-width: 1000px;
+            margin: 6rem auto;
+            padding: 0 2rem;
+            text-align: center;
+        }
+
+        .path-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 3rem 0;
+            position: relative;
+        }
+
+        .path-line {
+            position: absolute;
+            top: 50%;
+            left: 15%;
+            right: 15%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--primary), var(--secondary));
+            border-radius: 2px;
+            z-index: 1;
+        }
+
+        .path-step {
+            background: var(--dark-card);
+            border: 3px solid var(--border);
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .path-step:hover {
+            border-color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .path-step.beginner { border-color: var(--accent); }
+        .path-step.intermediate { border-color: var(--primary); }
+        .path-step.expert { border-color: var(--secondary); }
+
+        .path-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .path-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .path-details {
+            margin-top: 3rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .detail-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            transition: all 0.3s;
+        }
+
+        .detail-card:hover {
+            border-color: var(--primary);
+        }
+
+        /* Social Proof Section */
+        .social-proof {
+            background: rgba(30, 41, 59, 0.5);
+            padding: 4rem 2rem;
+            margin: 6rem 0;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            max-width: 800px;
+            margin: 3rem auto;
+        }
+
+        .stat-item {
+            padding: 2rem;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+        }
+
+        .testimonial {
+            max-width: 600px;
+            margin: 3rem auto;
+            padding: 2rem;
+            background: rgba(51, 65, 85, 0.5);
+            border-radius: 1rem;
+            border-left: 4px solid var(--accent);
+        }
+
+        .testimonial-text {
+            font-style: italic;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .testimonial-author {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* Footer CTA */
+        .footer-cta {
+            text-align: center;
+            padding: 4rem 2rem;
+            margin: 4rem 0;
+        }
+
+        .footer-title {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .footer-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .hero-logo {
+                font-size: 3rem;
+            }
+            
+            .concepts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .path-container {
+                flex-direction: column;
+                gap: 2rem;
+            }
+            
+            .path-line {
+                display: none;
+            }
+            
+            .path-details {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-content">
+            <a href="/index.html" class="logo">
+  <picture>
+    <source type="image/webp" srcset="images/logo.webp">
+    <img src="images/logo.png" alt="ZK Gaming Hub Logo" class="logo-img">
+  </picture>
+</a>
+            <a href="/games.html" class="nav-link">Games →</a>
+        </div>
+    </nav>
+
+    <!-- Animated Background -->
+    <div class="hero-bg"></div>
+
+    <!-- Hero Section -->
+    <main class="hero">
+        <div class="hero-logo">🔐</div>
+        <h1 class="hero-title">Learn Zero-Knowledge Through Play</h1>
+        <p class="hero-subtitle">
+            Master the cryptography that powers privacy, blockchain, and the future of digital trust
+        </p>
+        <p class="hero-hook">
+            "Privacy is not about hiding something. It's about protecting everything."
+        </p>
+        
+        <a href="#demo" class="cta-button">
+            <span>See How It Works</span>
+            <span>🧠</span>
+        </a>
+    </main>
+
+    <!-- Interactive Demo Section -->
+    <section class="demo-section" id="demo">
+        <div class="demo-card">
+            <h2 class="demo-title">🎭 Zero-Knowledge in 60 Seconds</h2>
+            <p class="demo-subtitle">
+                Experience the magic: prove you know something without revealing what it is
+            </p>
+            
+            <div class="demo-interactive">
+                <div class="demo-step">
+                    <h3>🤔 Step 1: Think of a secret word</h3>
+                    <input type="password" class="demo-input" id="secretWord" placeholder="Enter your secret word..." maxlength="20">
+                </div>
+                
+                <div class="demo-step">
+                    <h3>🔐 Step 2: Generate a cryptographic commitment</h3>
+                    <button class="demo-button" id="generateCommitment" disabled>Generate Commitment</button>
+                    <div id="commitmentResult" class="demo-result">
+                        <strong>Commitment Hash:</strong> <span id="commitmentHash"></span><br>
+                        <small>This proves you have a secret without revealing what it is!</small>
+                    </div>
+                </div>
+                
+                <div class="demo-step">
+                    <h3>✨ Step 3: Prove properties without revealing the secret</h3>
+                    <button class="demo-button" id="proveLength" disabled>Prove Word Length</button>
+                    <button class="demo-button" id="provePattern" disabled>Prove First Letter</button>
+                    <div id="proofResult" class="demo-result">
+                        <div id="proofText"></div>
+                        <small>The verifier now knows properties of your secret without ever seeing it!</small>
+                    </div>
+                </div>
+            </div>
+            
+            <p style="margin-top: 2rem; color: var(--text-dim);">
+                🎉 Congratulations! You just experienced zero-knowledge proofs in action.
+                <strong>Ready to dive deeper?</strong>
+            </p>
+        </div>
+    </section>
+
+    <!-- Core Concepts Section -->
+    <section class="concepts-section">
+        <h2 class="section-title">🧠 Core ZK Concepts</h2>
+        <div class="concepts-grid">
+            <div class="concept-card" onclick="showConceptDetail('commitment')">
+                <div class="concept-icon">🔒</div>
+                <h3 class="concept-title">Commitment Schemes</h3>
+                <p class="concept-description">
+                    Like putting a secret in a locked box. You can prove you have something without showing what it is.
+                </p>
+                <p class="concept-example">Example: Auction bids, voting systems</p>
+            </div>
+            
+            <div class="concept-card" onclick="showConceptDetail('zk')">
+                <div class="concept-icon">🎭</div>
+                <h3 class="concept-title">Zero-Knowledge Proofs</h3>
+                <p class="concept-description">
+                    Mathematical magic that lets you prove you know something without revealing any information about it.
+                </p>
+                <p class="concept-example">Example: Proving age without showing ID</p>
+            </div>
+            
+            <div class="concept-card" onclick="showConceptDetail('privacy')">
+                <div class="concept-icon">🛡️</div>
+                <h3 class="concept-title">Privacy Technology</h3>
+                <p class="concept-description">
+                    The foundation of private blockchains, anonymous credentials, and confidential computing.
+                </p>
+                <p class="concept-example">Example: Private transactions, identity verification</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Learning Path Section -->
+    <section class="learning-path">
+        <h2 class="section-title">🎯 Your Learning Journey</h2>
+        <p style="color: var(--text-dim); margin-bottom: 2rem;">
+            Progress from basic concepts to advanced cryptography through interactive games
+        </p>
+        
+        <div class="path-container">
+            <div class="path-line"></div>
+            <div class="path-step beginner">
+                <div class="path-icon">🟢</div>
+                <div class="path-label">Beginner</div>
+            </div>
+            <div class="path-step intermediate">
+                <div class="path-icon">🟡</div>
+                <div class="path-label">Intermediate</div>
+            </div>
+            <div class="path-step expert">
+                <div class="path-icon">🔴</div>
+                <div class="path-label">Expert</div>
+            </div>
+        </div>
+        
+        <div class="path-details">
+            <div class="detail-card">
+                <h3 style="color: var(--accent); margin-bottom: 1rem;">🟢 Beginner (Start Here)</h3>
+                <ul style="text-align: left; color: var(--text-dim);">
+                    <li>Basic commitment schemes</li>
+                    <li>Simple proof concepts</li>
+                    <li>Interactive tutorials</li>
+                    <li>Visual explanations</li>
+                </ul>
+                <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--accent);">
+                    ⏱️ ~30 minutes to complete
+                </p>
+            </div>
+            
+            <div class="detail-card">
+                <h3 style="color: var(--primary); margin-bottom: 1rem;">🟡 Intermediate</h3>
+                <ul style="text-align: left; color: var(--text-dim);">
+                    <li>Advanced proof systems</li>
+                    <li>Cryptographic puzzles</li>
+                    <li>Real-world applications</li>
+                    <li>Protocol understanding</li>
+                </ul>
+                <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--primary);">
+                    ⏱️ ~2 hours to master
+                </p>
+            </div>
+            
+            <div class="detail-card">
+                <h3 style="color: var(--secondary); margin-bottom: 1rem;">🔴 Expert</h3>
+                <ul style="text-align: left; color: var(--text-dim);">
+                    <li>Complex circuit design</li>
+                    <li>Performance optimization</li>
+                    <li>Security analysis</li>
+                    <li>Implementation details</li>
+                </ul>
+                <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--secondary);">
+                    ⏱️ ~5+ hours for mastery
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Social Proof Section -->
+    <section class="social-proof">
+        <h2 class="section-title">🚀 Join the Community</h2>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number" id="learnerCount">1,247</div>
+                <div class="stat-label">Active Learners</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="gamesPlayed">15,823</div>
+                <div class="stat-label">Games Played</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="proofsGenerated">94,567</div>
+                <div class="stat-label">Proofs Generated</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">98%</div>
+                <div class="stat-label">Success Rate</div>
+            </div>
+        </div>
+        
+        <div class="testimonial">
+            <div class="testimonial-text">
+                "I finally understood zero-knowledge proofs after playing ZK Sudoku. The interactive approach made complex cryptography click for me!"
+            </div>
+            <div class="testimonial-author">— Sarah Chen, Blockchain Developer</div>
+        </div>
+    </section>
+
+    <!-- Footer CTA Section -->
+    <section class="footer-cta">
+        <h2 class="footer-title">Ready to Begin Your ZK Journey?</h2>
+        <p class="footer-subtitle">
+            Join thousands of developers, students, and curious minds learning the future of privacy technology
+        </p>
+        
+        <a href="/games.html" class="cta-button">
+            <span>Start Learning Now</span>
+            <span>🎮</span>
+        </a>
+    </section>
+
+    <script>
+        // Interactive Demo Logic
+        let userSecret = '';
+        let commitment = '';
+        
+        document.getElementById('secretWord').addEventListener('input', function(e) {
+            userSecret = e.target.value;
+            const commitBtn = document.getElementById('generateCommitment');
+            commitBtn.disabled = userSecret.length < 3;
+        });
+        
+        document.getElementById('generateCommitment').addEventListener('click', function() {
+            if (userSecret.length < 3) return;
+            
+            // Simple hash function for demo (not cryptographically secure)
+            commitment = generateSimpleHash(userSecret);
+            
+            document.getElementById('commitmentHash').textContent = commitment;
+            document.getElementById('commitmentResult').classList.add('show');
+            
+            // Enable proof buttons
+            document.getElementById('proveLength').disabled = false;
+            document.getElementById('provePattern').disabled = false;
+        });
+        
+        document.getElementById('proveLength').addEventListener('click', function() {
+            const length = userSecret.length;
+            const proofText = document.getElementById('proofText');
+            proofText.innerHTML = `
+                <strong>✅ Proof Verified:</strong> Your secret word has ${length} characters<br>
+                <strong>Commitment:</strong> ${commitment}<br>
+                <strong>Zero Knowledge:</strong> The word itself remains completely hidden!
+            `;
+            document.getElementById('proofResult').classList.add('show');
+        });
+        
+        document.getElementById('provePattern').addEventListener('click', function() {
+            const firstLetter = userSecret.charAt(0).toLowerCase();
+            const proofText = document.getElementById('proofText');
+            proofText.innerHTML = `
+                <strong>✅ Proof Verified:</strong> Your secret word starts with "${firstLetter.toUpperCase()}"<br>
+                <strong>Commitment:</strong> ${commitment}<br>
+                <strong>Zero Knowledge:</strong> Only the first letter is revealed, nothing more!
+            `;
+            document.getElementById('proofResult').classList.add('show');
+        });
+        
+        function generateSimpleHash(input) {
+            let hash = 0;
+            for (let i = 0; i < input.length; i++) {
+                const char = input.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32-bit integer
+            }
+            return '0x' + Math.abs(hash).toString(16).padStart(8, '0');
+        }
+        
+        // Concept Detail Function
+        function showConceptDetail(concept) {
+            const details = {
+                commitment: "Commitment schemes are like digital locked boxes. You put your secret inside, lock it, and give the locked box to someone else. Later, you can prove properties about what's inside without opening the box!",
+                zk: "Zero-knowledge proofs are mathematical protocols that allow you to prove you know something without revealing what that something is. It's like proving you can solve a puzzle without showing the solution!",
+                privacy: "Privacy technology built on ZK proofs enables private transactions, anonymous credentials, and confidential smart contracts. It's the foundation of privacy-preserving blockchain applications!"
+            };
+            
+            alert(details[concept] || "Learn more by exploring our interactive games!");
+        }
+        
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+        
+        // Animate stats on scroll
+        function animateStats() {
+            const stats = document.querySelectorAll('.stat-number');
+            stats.forEach(stat => {
+                const target = parseInt(stat.textContent.replace(/,/g, ''));
+                let current = 0;
+                const increment = target / 100;
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        current = target;
+                        clearInterval(timer);
+                    }
+                    stat.textContent = Math.floor(current).toLocaleString();
+                }, 20);
+            });
+        }
+        
+        // Intersection Observer for animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                    
+                    // Animate stats when they come into view
+                    if (entry.target.classList.contains('social-proof')) {
+                        animateStats();
+                    }
+                }
+            });
+        });
+        
+        // Observe elements for animation
+        document.querySelectorAll('.demo-card, .concept-card, .social-proof').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
+        });
+        
+        // Add floating particles
+        function createParticles() {
+            const particleCount = 30;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.style.position = 'fixed';
+                particle.style.width = '3px';
+                particle.style.height = '3px';
+                particle.style.background = `rgba(${99 + Math.random() * 40}, ${102 + Math.random() * 40}, 241, ${0.3 + Math.random() * 0.4})`;
+                particle.style.borderRadius = '50%';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.pointerEvents = 'none';
+                particle.style.zIndex = '-1';
+                particle.style.animation = `float ${5 + Math.random() * 10}s ease-in-out infinite ${Math.random() * 5}s`;
+                
+                document.body.appendChild(particle);
+            }
+        }
+
+        // Add CSS for particle animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes float {
+                0%, 100% { 
+                    transform: translateY(0) translateX(0) rotate(0deg);
+                    opacity: 0.3;
+                }
+                25% { 
+                    transform: translateY(-30px) translateX(20px) rotate(90deg);
+                    opacity: 0.7;
+                }
+                50% { 
+                    transform: translateY(-60px) translateX(-15px) rotate(180deg);
+                    opacity: 0.5;
+                }
+                75% { 
+                    transform: translateY(-30px) translateX(10px) rotate(270deg);
+                    opacity: 0.8;
+                }
+            }
+            
+            .path-step {
+                position: relative;
+            }
+            
+            .path-step::after {
+                content: '';
+                position: absolute;
+                inset: -5px;
+                border-radius: 50%;
+                background: linear-gradient(45deg, transparent, var(--primary), transparent);
+                opacity: 0;
+                transition: opacity 0.3s;
+                z-index: -1;
+            }
+            
+            .path-step:hover::after {
+                opacity: 0.3;
+                animation: spin 2s linear infinite;
+            }
+            
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+            
+            .concept-card {
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .demo-interactive {
+                position: relative;
+            }
+            
+            .demo-interactive::before {
+                content: '🔐';
+                position: absolute;
+                top: -10px;
+                right: -10px;
+                font-size: 2rem;
+                opacity: 0.1;
+                animation: pulse 2s ease-in-out infinite;
+            }
+            
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); opacity: 0.1; }
+                50% { transform: scale(1.1); opacity: 0.3; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🎮 ZK Gaming Hub - Educational Landing Page Loaded!');
+            createParticles();
+            
+            // Add smooth reveal animation on load
+            setTimeout(() => {
+                document.querySelector('.hero').style.opacity = '1';
+                document.querySelector('.hero').style.transform = 'translateY(0)';
+            }, 300);
+            
+            // Typing effect for hero hook
+            const hookElement = document.querySelector('.hero-hook');
+            const hookText = hookElement.textContent;
+            hookElement.textContent = '';
+            hookElement.style.borderRight = '2px solid var(--accent)';
+            
+            let i = 0;
+            const typeSpeed = 50;
+            
+            function typeWriter() {
+                if (i < hookText.length) {
+                    hookElement.textContent += hookText.charAt(i);
+                    i++;
+                    setTimeout(typeWriter, typeSpeed);
+                } else {
+                    // Remove cursor after typing
+                    setTimeout(() => {
+                        hookElement.style.borderRight = 'none';
+                    }, 1000);
+                }
+            }
+            
+            // Start typing after a delay
+            setTimeout(typeWriter, 2000);
+        });
+        
+        // Add interactive hover effects for concept cards
+        document.querySelectorAll('.concept-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.background = 'rgba(99, 102, 241, 0.1)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.background = 'rgba(30, 41, 59, 0.8)';
+            });
+        });
+        
+        // Add click tracking for analytics (mock)
+        function trackEvent(eventName, properties = {}) {
+            console.log(`📊 Event: ${eventName}`, properties);
+            // In real implementation, send to analytics service
+        }
+        
+        // Track user interactions
+        document.querySelector('.cta-button').addEventListener('click', () => {
+            trackEvent('cta_clicked', { location: 'hero' });
+        });
+        
+        document.querySelectorAll('.concept-card').forEach((card, index) => {
+            card.addEventListener('click', () => {
+                trackEvent('concept_explored', { concept: index });
+            });
+        });
+        
+        // Add progressive loading for better performance
+        function lazyLoadImages() {
+            const images = document.querySelectorAll('img[data-src]');
+            const imageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        img.src = img.dataset.src;
+                        img.classList.remove('lazy');
+                        imageObserver.unobserve(img);
+                    }
+                });
+            });
+            
+            images.forEach(img => imageObserver.observe(img));
+        }
+        
+        lazyLoadImages();
+        
+        // Enhanced demo interactivity
+        let demoCompleted = false;
+        
+        function completeDemoFlow() {
+            if (!demoCompleted) {
+                demoCompleted = true;
+                
+                // Add success animation
+                const demoCard = document.querySelector('.demo-card');
+                demoCard.style.background = 'rgba(16, 185, 129, 0.1)';
+                demoCard.style.borderColor = 'var(--accent)';
+                
+                // Show achievement notification
+                showAchievement("🎉 First ZK Proof Complete!", "You've successfully generated your first zero-knowledge proof!");
+                
+                // Update CTA to be more specific
+                const footerCTA = document.querySelector('.footer-cta .cta-button span');
+                if (footerCTA) {
+                    footerCTA.textContent = "Continue Learning";
+                }
+                
+                trackEvent('demo_completed');
+            }
+        }
+        
+        function showAchievement(title, description) {
+            const achievement = document.createElement('div');
+            achievement.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                background: linear-gradient(135deg, var(--accent), var(--primary));
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 1rem;
+                box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+                z-index: 9999;
+                transform: translateX(400px);
+                transition: transform 0.5s ease;
+                max-width: 300px;
+            `;
+            
+            achievement.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 0.5rem;">${title}</div>
+                <div style="font-size: 0.9rem; opacity: 0.9;">${description}</div>
+            `;
+            
+            document.body.appendChild(achievement);
+            
+            // Slide in
+            setTimeout(() => {
+                achievement.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // Slide out after delay
+            setTimeout(() => {
+                achievement.style.transform = 'translateX(400px)';
+                setTimeout(() => {
+                    achievement.remove();
+                }, 500);
+            }, 4000);
+        }
+        
+        // Enhanced proof button handlers
+        document.getElementById('proveLength').addEventListener('click', function() {
+            setTimeout(completeDemoFlow, 1000);
+        });
+        
+        document.getElementById('provePattern').addEventListener('click', function() {
+            setTimeout(completeDemoFlow, 1000);
+        });
+        
+        // Add keyboard shortcuts for power users
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + K to focus demo input
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('secretWord').focus();
+                trackEvent('keyboard_shortcut_used', { shortcut: 'focus_demo' });
+            }
+            
+            // Escape to scroll to top
+            if (e.key === 'Escape') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                trackEvent('keyboard_shortcut_used', { shortcut: 'scroll_top' });
+            }
+        });
+        
+        // Add scroll progress indicator
+        function updateScrollProgress() {
+            const scrollProgress = document.createElement('div');
+            scrollProgress.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 0%;
+                height: 3px;
+                background: linear-gradient(90deg, var(--accent), var(--primary), var(--secondary));
+                z-index: 9999;
+                transition: width 0.1s ease;
+            `;
+            document.body.appendChild(scrollProgress);
+            
+            window.addEventListener('scroll', () => {
+                const scrollTop = window.pageYOffset;
+                const docHeight = document.body.offsetHeight - window.innerHeight;
+                const scrollPercent = (scrollTop / docHeight) * 100;
+                scrollProgress.style.width = scrollPercent + '%';
+            });
+        }
+        
+        updateScrollProgress();
+        
+        // Easter egg: Konami code for advanced users
+        let konamiCode = [];
+        const konamiSequence = [
+            'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
+            'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
+            'KeyB', 'KeyA'
+        ];
+        
+        document.addEventListener('keydown', function(e) {
+            konamiCode.push(e.code);
+            if (konamiCode.length > konamiSequence.length) {
+                konamiCode.shift();
+            }
+            
+            if (konamiCode.join(',') === konamiSequence.join(',')) {
+                showAchievement("🎮 Konami Code!", "You found the secret! Here's a bonus ZK fact: The first ZK proof was invented in 1985!");
+                konamiCode = [];
+                trackEvent('easter_egg_found', { type: 'konami' });
+            }
+        });
+    </script>
+    <script src="js/zkhub-optimizations.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').then(function(registration) {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
+</body>
+</html>

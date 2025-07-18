@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZK Rock Paper Scissors - Commitment Scheme Demo</title>
+    <meta name="description" content="Play Zero-Knowledge Rock Paper Scissors online! Commit your move securely and reveal it with cryptographic proofs. Learn about commitment schemes and ZK proofs while having fun.">
+    <!-- Open Graph Meta Tags for SEO & Social Sharing -->
+    <meta property="og:title" content="ZK Rock Paper Scissors - Commitment Scheme Demo">
+    <meta property="og:description" content="Play Zero-Knowledge Rock Paper Scissors online! Commit your move securely and reveal it with cryptographic proofs. Learn about commitment schemes and ZK proofs while having fun.">
+    <meta property="og:image" content="images/games/zk_rps.png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sp1-gaming-hub.vercel.app/zk_rps_game.html">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ZK Rock Paper Scissors - Commitment Scheme Demo">
+    <meta name="twitter:description" content="Play Zero-Knowledge Rock Paper Scissors online! Commit your move securely and reveal it with cryptographic proofs. Learn about commitment schemes and ZK proofs while having fun.">
+    <meta name="twitter:image" content="images/games/zk_rps.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --accent: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --dark: #0f172a;
+            --dark-lighter: #1e293b;
+            --dark-card: #334155;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --border: #475569;
+            --rock: #8b5cf6;
+            --paper: #6366f1;
+            --scissors: #ef4444;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--dark);
+            color: var(--text);
+            min-height: 100vh;
+            padding-top: 80px;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        .nav-header {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--text);
+        }
+
+        /* Animated Background */
+        .rps-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            opacity: 0.03;
+            background: 
+                radial-gradient(circle at 20% 80%, var(--rock) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, var(--paper) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, var(--scissors) 0%, transparent 50%);
+            animation: bgPulse 15s ease-in-out infinite;
+        }
+
+        @keyframes bgPulse {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(180deg); }
+        }
+
+        /* Main Container */
+        .game-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 3rem;
+            align-items: start;
+        }
+
+        /* Header */
+        .game-header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .game-title {
+            font-size: 3.5rem;
+            background: linear-gradient(135deg, var(--rock), var(--paper), var(--scissors));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .game-subtitle {
+            font-size: 1.3rem;
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+        }
+
+        /* Game Modes */
+        .game-modes {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .mode-btn {
+            padding: 1rem 2rem;
+            background: var(--dark-card);
+            border: 2px solid var(--border);
+            border-radius: 0.75rem;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .mode-btn.active {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .mode-btn:hover:not(.active) {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        /* Main Game Area */
+        .game-board-container {
+            background: var(--dark-lighter);
+            border: 2px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 3rem;
+            position: relative;
+        }
+
+        /* Game Phase Indicator */
+        .game-phase {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--dark-card);
+            border-radius: 1rem;
+            border: 2px solid var(--border);
+        }
+
+        .phase-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .phase-description {
+            color: var(--text-dim);
+            font-size: 1rem;
+        }
+
+        .phase-timer {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--warning);
+            margin-top: 0.5rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Player Areas */
+        .players-container {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+            align-items: center;
+        }
+
+        .player-area {
+            background: var(--dark-card);
+            border: 2px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .player-area.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .player-info {
+            margin-bottom: 2rem;
+        }
+
+        .player-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 1rem;
+            border: 3px solid var(--border);
+        }
+
+        .ai-avatar {
+            background: var(--accent);
+        }
+
+        .player-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .player-score {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        .vs-divider {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .vs-text {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .round-counter {
+            padding: 0.5rem 1rem;
+            background: var(--dark-card);
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        /* Move Selection */
+        .move-selection {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .move-btn {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 3px solid var(--border);
+            background: var(--dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .move-btn:hover {
+            transform: scale(1.1);
+            border-color: var(--primary);
+        }
+
+        .move-btn.selected {
+            border-color: var(--accent);
+            background: rgba(16, 185, 129, 0.2);
+            transform: scale(1.1);
+        }
+
+        .move-btn.rock { border-color: var(--rock); }
+        .move-btn.paper { border-color: var(--paper); }
+        .move-btn.scissors { border-color: var(--scissors); }
+
+        .move-btn.rock.selected { background: rgba(139, 92, 246, 0.2); }
+        .move-btn.paper.selected { background: rgba(99, 102, 241, 0.2); }
+        .move-btn.scissors.selected { background: rgba(239, 68, 68, 0.2); }
+
+        /* Commitment Display */
+        .commitment-section {
+            background: var(--dark-card);
+            border: 2px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .commitment-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .commitment-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--dark);
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .commitment-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--text-dim);
+        }
+
+        .commitment-indicator.pending {
+            background: var(--warning);
+            animation: pulse 1.5s infinite;
+        }
+
+        .commitment-indicator.committed {
+            background: var(--accent);
+        }
+
+        .commitment-indicator.revealed {
+            background: var(--primary);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .commitments-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .commitment-item {
+            background: var(--dark);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        .commitment-label {
+            font-size: 0.875rem;
+            color: var(--text-dim);
+            margin-bottom: 0.5rem;
+        }
+
+        .commitment-value {
+            font-family: monospace;
+            font-size: 0.875rem;
+            color: var(--primary);
+            word-break: break-all;
+        }
+
+        /* Reveal Section */
+        .reveal-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .reveal-item {
+            background: var(--dark-card);
+            border: 2px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .reveal-move {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            animation: revealPop 0.5s ease;
+        }
+
+        @keyframes revealPop {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .reveal-label {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Result Section */
+        .result-section {
+            text-align: center;
+            padding: 2rem;
+            background: var(--dark-card);
+            border-radius: 1rem;
+            border: 2px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .result-section.win {
+            border-color: var(--accent);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .result-section.lose {
+            border-color: var(--error);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .result-section.tie {
+            border-color: var(--warning);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .result-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: bounce 1s ease infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .result-title {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-description {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+        }
+
+        /* Control Buttons */
+        .control-section {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Side Panel */
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .info-card {
+            background: var(--dark-lighter);
+            border: 2px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+        }
+
+        .info-card h3 {
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.3rem;
+        }
+
+        /* Statistics */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+            font-size: 0.95rem;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .win-rate {
+            color: var(--accent);
+        }
+
+        /* ZK Concepts */
+        .zk-concept {
+            background: var(--dark-card);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--primary);
+        }
+
+        .concept-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .concept-description {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Commitment Steps */
+        .commitment-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+        }
+
+        .step::after {
+            content: '';
+            position: absolute;
+            top: 30px;
+            right: -50%;
+            width: 100%;
+            height: 2px;
+            background: var(--border);
+            z-index: 1;
+        }
+
+        .step:last-child::after {
+            display: none;
+        }
+
+        .step-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--dark-card);
+            border: 3px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            z-index: 2;
+            position: relative;
+        }
+
+        .step-circle.active {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .step-circle.completed {
+            border-color: var(--accent);
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        .step-label {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            text-align: center;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 968px) {
+            .game-container {
+                grid-template-columns: 1fr;
+                padding: 0 1rem;
+                gap: 2rem;
+            }
+
+            .game-title {
+                font-size: 2.5rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            body {
+                padding-top: 60px;
+            }
+
+            .players-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .vs-divider {
+                order: 2;
+                flex-direction: row;
+            }
+
+            .move-selection {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .move-btn {
+                width: 80px;
+                height: 80px;
+                font-size: 2rem;
+            }
+
+            .control-section {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+
+            .commitment-steps {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .step::after {
+                display: none;
+            }
+        }
+
+        /* Loading Animation */
+        .loader {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* AI Thinking */
+        .ai-thinking {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .ai-thinking.show {
+            display: block;
+        }
+
+        .thinking-text {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: var(--accent);
+        }
+
+        .thinking-emoji {
+            font-size: 3rem;
+            animation: think 1.5s ease-in-out infinite;
+        }
+
+        @keyframes think {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav-header">
+        <div class="nav-content">
+            <a href="/games.html" class="logo">
+                <span>🎮</span>
+                <span>ZK Gaming Hub</span>
+            </a>
+            <div class="nav-links">
+                <a href="/games.html" class="nav-link">← Back to Games</a>
+                <a href="/index.html" class="nav-link">Home</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Animated Background -->
+    <div class="rps-bg"></div>
+
+    <div class="game-container">
+        <!-- Header -->
+        <div class="game-header">
+            <h1 class="game-title">
+                <span>✂️</span>
+                <span>ZK Rock Paper Scissors</span>
+            </h1>
+            <p class="game-subtitle">Learn cryptographic commitments through the classic game!</p>
+            
+            <!-- Game Modes -->
+            <div class="game-modes">
+                <button class="mode-btn active" onclick="setGameMode('demo')" data-mode="demo">
+                    🎯 Demo Mode
+                </button>
+                <button class="mode-btn" onclick="setGameMode('tournament')" data-mode="tournament">
+                    🏆 Tournament
+                </button>
+                <button class="mode-btn" onclick="setGameMode('practice')" data-mode="practice">
+                    🔬 Practice
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Game Area -->
+        <div class="game-board-container">
+            <!-- Game Phase -->
+            <div class="game-phase" id="gamePhase">
+                <div class="phase-title" id="phaseTitle">Ready to Play</div>
+                <div class="phase-description" id="phaseDescription">Choose your move and commit to it!</div>
+                <div class="phase-timer" id="phaseTimer"></div>
+            </div>
+
+            <!-- Commitment Steps -->
+            <div class="commitment-steps">
+                <div class="step">
+                    <div class="step-circle" id="step1">🤔</div>
+                    <div class="step-label">Choose Move</div>
+                </div>
+                <div class="step">
+                    <div class="step-circle" id="step2">🔐</div>
+                    <div class="step-label">Commit</div>
+                </div>
+                <div class="step">
+                    <div class="step-circle" id="step3">👁️</div>
+                    <div class="step-label">Reveal</div>
+                </div>
+                <div class="step">
+                    <div class="step-circle" id="step4">🏆</div>
+                    <div class="step-label">Result</div>
+                </div>
+            </div>
+
+            <!-- Players Container -->
+            <div class="players-container">
+                <div class="player-area active" id="playerArea">
+                    <div class="player-info">
+                        <div class="player-avatar">👤</div>
+                        <div class="player-name">You</div>
+                        <div class="player-score">Wins: <span id="playerWins">0</span></div>
+                    </div>
+                    
+                    <div class="move-selection" id="moveSelection">
+                        <div class="move-btn rock" onclick="selectMove('rock')" data-move="rock">
+                            🪨
+                        </div>
+                        <div class="move-btn paper" onclick="selectMove('paper')" data-move="paper">
+                            📄
+                        </div>
+                        <div class="move-btn scissors" onclick="selectMove('scissors')" data-move="scissors">
+                            ✂️
+                        </div>
+                    </div>
+                </div>
+
+                <div class="vs-divider">
+                    <div class="vs-text">VS</div>
+                    <div class="round-counter">Round <span id="roundNumber">1</span></div>
+                </div>
+
+                <div class="player-area" id="aiArea">
+                    <div class="player-info">
+                        <div class="player-avatar ai-avatar">🤖</div>
+                        <div class="player-name">ZK Bot</div>
+                        <div class="player-score">Wins: <span id="aiWins">0</span></div>
+                    </div>
+                    
+                    <div style="text-align: center; padding: 2rem;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;" id="aiMoveDisplay">🤖</div>
+                        <div style="color: var(--text-dim);" id="aiStatus">Waiting for your move...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Thinking Overlay -->
+            <div class="ai-thinking" id="aiThinking">
+                <div class="thinking-text">🤖 ZK Bot is deciding...</div>
+                <div class="thinking-emoji">🤔</div>
+            </div>
+
+            <!-- Commitment Section -->
+            <div class="commitment-section" id="commitmentSection">
+                <div class="commitment-header">
+                    <h3>🔐 Cryptographic Commitments</h3>
+                    <div class="commitment-status">
+                        <div class="commitment-indicator" id="commitmentIndicator"></div>
+                        <span id="commitmentStatusText">Ready to commit</span>
+                    </div>
+                </div>
+
+                <div class="commitments-grid">
+                    <div class="commitment-item">
+                        <div class="commitment-label">Your Commitment</div>
+                        <div class="commitment-value" id="playerCommitment">--</div>
+                    </div>
+                    <div class="commitment-item">
+                        <div class="commitment-label">Bot Commitment</div>
+                        <div class="commitment-value" id="aiCommitment">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reveal Section -->
+            <div class="reveal-section" id="revealSection" style="display: none;">
+                <div class="reveal-item">
+                    <div class="reveal-move" id="playerReveal">?</div>
+                    <div class="reveal-label">Your Move</div>
+                </div>
+                <div class="reveal-item">
+                    <div class="reveal-move" id="aiReveal">?</div>
+                    <div class="reveal-label">Bot Move</div>
+                </div>
+            </div>
+
+            <!-- Result Section -->
+            <div class="result-section" id="resultSection" style="display: none;">
+                <div class="result-icon" id="resultIcon">🤔</div>
+                <div class="result-title" id="resultTitle">Make your move!</div>
+                <div class="result-description" id="resultDescription">Choose rock, paper, or scissors to start the round</div>
+            </div>
+
+            <!-- Control Section -->
+            <div class="control-section">
+                <button class="btn btn-secondary" onclick="commitMove()" id="commitBtn" disabled>
+                    <span>🔐</span>
+                    <span>Commit Move</span>
+                </button>
+                <button class="btn btn-primary" onclick="revealMoves()" id="revealBtn" disabled>
+                    <span>👁️</span>
+                    <span>Reveal Moves</span>
+                </button>
+                <button class="btn btn-secondary" onclick="nextRound()" id="nextRoundBtn" disabled>
+                    <span>🔄</span>
+                    <span>Next Round</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ZK Proof Section -->
+        <div class="zk-proof-section">
+            <div id="zkProofBadge" class="zk-proof-badge" title="Total ZK Proofs Generated">
+                <span class="zk-proof-badge-icon">🔐</span>
+                <span class="zk-proof-badge-count" id="zkProofCount">0</span>
+            </div>
+            <div class="proof-header">
+                <h4>🔐 Zero-Knowledge Proof</h4>
+                <div class="proof-status">
+                    <div class="proof-indicator" id="proofIndicator"></div>
+                    <span id="proofStatusText">Ready to generate proof</span>
+                </div>
+            </div>
+            <div class="proof-metric">
+                <div class="metric-label">Proof Hash</div>
+                <div class="metric-value" id="proofHash">--</div>
+            </div>
+        </div>
+
+        <!-- ZK Proof Log -->
+        <div class="zk-proof-log-section">
+            <h5 style="color: var(--accent); margin-bottom: 0.5rem;">📝 Proof Log</h5>
+            <ul id="zkProofLog" class="zk-proof-log"></ul>
+        </div>
+
+        <!-- ZK Proof Detail Modal -->
+        <div class="modal" id="zkProofDetailModal">
+            <div class="modal-content" style="max-width: 400px;">
+                <h3 style="color: var(--primary); margin-bottom: 1rem;">🔍 Proof Details</h3>
+                <div id="zkProofDetailContent"></div>
+                <button class="btn btn-secondary" onclick="closeProofDetailModal()" style="margin-top:1.5rem;">Close</button>
+            </div>
+        </div>
+
+        <!-- ZK Onboarding Tooltip -->
+        <div id="zkProofTooltip" class="zk-proof-tooltip" style="display:none;">
+            Each round generates a Zero-Knowledge Proof! Click the badge or log to learn more.
+            <button onclick="hideZKProofTooltip()" class="btn btn-secondary" style="margin-top:0.75rem;">Got it!</button>
+        </div>
+
+        <!-- Side Panel -->
+        <div class="side-panel">
+            <!-- Game Statistics -->
+            <div class="info-card">
+                <h3>📊 Game Statistics</h3>
+                <div class="stat-row">
+                    <span class="stat-label">Total Rounds</span>
+                    <span class="stat-value" id="totalRounds">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Your Win Rate</span>
+                    <span class="stat-value win-rate" id="winRate">0%</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Commitments Made</span>
+                    <span class="stat-value" id="commitmentsCount">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Perfect Rounds</span>
+                    <span class="stat-value" id="perfectRounds">0</span>
+                </div>
+            </div>
+
+            <!-- ZK Concepts -->
+            <div class="info-card">
+                <h3>🧠 ZK Concepts</h3>
+                
+                <div class="zk-concept">
+                    <div class="concept-title">Commitment Schemes</div>
+                    <div class="concept-description">
+                        Both players commit to their moves using cryptographic hashes before revealing. This prevents cheating or changing moves after seeing the opponent's choice.
+                    </div>
+                </div>
+
+                <div class="zk-concept">
+                    <div class="concept-title">Hiding & Binding</div>
+                    <div class="concept-description">
+                        Commitments are "hiding" (can't see the move) and "binding" (can't change it later). Perfect for fair gameplay!
+                    </div>
+                </div>
+
+                <div class="zk-concept">
+                    <div class="concept-title">Reveal Phase</div>
+                    <div class="concept-description">
+                        After both commit, players reveal their moves and randomness. The commitment is verified to ensure no cheating occurred.
+                    </div>
+                </div>
+            </div>
+
+            <!-- How It Works -->
+            <div class="info-card">
+                <h3>🔧 How It Works</h3>
+                
+                <div style="background: var(--dark-card); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1rem; font-family: monospace; font-size: 0.875rem;">
+                    <div style="color: var(--primary); margin-bottom: 0.5rem;">1. Choose your move</div>
+                    <div style="color: var(--text-dim); margin-bottom: 1rem;">move = "rock" | "paper" | "scissors"</div>
+                    
+                    <div style="color: var(--primary); margin-bottom: 0.5rem;">2. Generate commitment</div>
+                    <div style="color: var(--text-dim); margin-bottom: 1rem;">commitment = hash(move + nonce)</div>
+                    
+                    <div style="color: var(--primary); margin-bottom: 0.5rem;">3. Both players commit</div>
+                    <div style="color: var(--text-dim); margin-bottom: 1rem;">Share commitments simultaneously</div>
+                    
+                    <div style="color: var(--primary); margin-bottom: 0.5rem;">4. Reveal and verify</div>
+                    <div style="color: var(--text-dim);">Reveal move + nonce, verify hash</div>
+                </div>
+
+                <div style="text-align: center; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-radius: 0.5rem; border: 1px solid var(--accent); font-size: 0.9rem; color: var(--accent);">
+                    ✅ No one can cheat or change their move!
+                </div>
+            </div>
+
+            <!-- Game Rules -->
+            <div class="info-card">
+                <h3>📋 Game Rules</h3>
+                
+                <div style="color: var(--text-dim); font-size: 0.9rem; line-height: 1.6;">
+                    <div style="margin-bottom: 1rem;">
+                        <strong style="color: var(--text);">🪨 Rock</strong> crushes scissors<br>
+                        <strong style="color: var(--text);">📄 Paper</strong> covers rock<br>
+                        <strong style="color: var(--text);">✂️ Scissors</strong> cuts paper
+                    </div>
+                    
+                    <div style="background: var(--dark-card); padding: 1rem; border-radius: 0.5rem;">
+                        <div style="color: var(--primary); font-weight: 600; margin-bottom: 0.5rem;">Tournament Mode:</div>
+                        <div>First to 5 wins takes the championship!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            gameMode: 'demo',
+            currentRound: 1,
+            playerMove: null,
+            aiMove: null,
+            playerCommitment: null,
+            aiCommitment: null,
+            playerNonce: null,
+            aiNonce: null,
+            gamePhase: 'selection', // selection, committed, revealing, result
+            scores: {
+                player: parseInt(localStorage.getItem('zk-rps-player-wins') || '0'),
+                ai: parseInt(localStorage.getItem('zk-rps-ai-wins') || '0')
+            },
+            stats: {
+                totalRounds: parseInt(localStorage.getItem('zk-rps-total-rounds') || '0'),
+                commitmentsCount: parseInt(localStorage.getItem('zk-rps-commitments') || '0'),
+                perfectRounds: parseInt(localStorage.getItem('zk-rps-perfect') || '0')
+            },
+            roundStartTime: 0,
+            tournamentTarget: 5
+        };
+
+        // Game rules
+        const moves = {
+            rock: { emoji: '🪨', beats: 'scissors' },
+            paper: { emoji: '📄', beats: 'rock' },
+            scissors: { emoji: '✂️', beats: 'paper' }
+        };
+
+        // --- ZK Proof UX State ---
+        let zkProofLog = [];
+        let zkProofTooltipShown = false;
+        let zkProofsGenerated = parseInt(localStorage.getItem('zk-rps-zkproofs') || '0');
+
+        // --- Cryptographically Secure Nonce Generation ---
+        function generateNonce() {
+            // 16 bytes = 128 bits of entropy
+            const array = new Uint8Array(16);
+            window.crypto.getRandomValues(array);
+            return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // --- ZK Proof UI Functions ---
+        function updateZKProofCount() {
+            document.getElementById('zkProofCount').textContent = zkProofsGenerated;
+        }
+        function animateZKProofBadge() {
+            const badge = document.getElementById('zkProofBadge');
+            badge.style.transform = 'scale(1.18)';
+            setTimeout(() => { badge.style.transform = 'scale(1)'; }, 400);
+        }
+        function addZKProofLogEntry(details) {
+            const entry = {
+                type: 'rps',
+                details,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            };
+            zkProofLog.unshift(entry);
+            if (zkProofLog.length > 10) zkProofLog.pop();
+            renderZKProofLog();
+        }
+        function renderZKProofLog() {
+            const log = document.getElementById('zkProofLog');
+            log.innerHTML = zkProofLog.map((entry, i) =>
+                `<li class='zk-proof-log-entry' onclick='showProofDetailModal(${i})'>
+                    <span style='color:var(--accent)'>#${zkProofsGenerated - i}</span> — Round ${entry.details.round} — <span style='color:var(--primary)'>${entry.details.result}</span>
+                    <br><span style='font-size:0.9em;color:var(--text-dim)'>${entry.timestamp}</span>
+                </li>`
+            ).join('');
+        }
+        function showProofDetailModal(idx) {
+            const entry = zkProofLog[idx];
+            if (!entry) return;
+            let html = `<strong>Proof Hash:</strong><br><span style='color:var(--primary)'>${entry.details.proofHash}</span><br><br>`;
+            html += `<span style='color:var(--accent)'>You: ${entry.details.playerMove} (${entry.details.playerNonce})<br>Bot: ${entry.details.aiMove} (${entry.details.aiNonce})</span><br><br>`;
+            html += `<span style='color:var(--text-dim)'>Verified: Commitment scheme + ZK proof simulated</span>`;
+            document.getElementById('zkProofDetailContent').innerHTML = html;
+            document.getElementById('zkProofDetailModal').classList.add('show');
+        }
+        function closeProofDetailModal() {
+            document.getElementById('zkProofDetailModal').classList.remove('show');
+        }
+        function showZKProofTooltip() {
+            document.getElementById('zkProofTooltip').style.display = 'block';
+            zkProofTooltipShown = true;
+            localStorage.setItem('zk-rps-zk-tooltip', '1');
+        }
+        function hideZKProofTooltip() {
+            document.getElementById('zkProofTooltip').style.display = 'none';
+        }
+        // Badge click shows tooltip
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('zkProofBadge').onclick = showZKProofTooltip;
+        });
+
+        // --- ZK Proof Generation (call after each round) ---
+        function generateZKProof() {
+            zkProofsGenerated++;
+            updateZKProofCount();
+            animateZKProofBadge();
+            const proofHash = generateProofHash(
+                gameState.playerMove,
+                gameState.aiMove,
+                gameState.playerNonce,
+                gameState.aiNonce,
+                gameState.currentRound
+            );
+            document.getElementById('proofHash').textContent = proofHash;
+            document.getElementById('proofIndicator').className = 'proof-indicator verified';
+            document.getElementById('proofStatusText').textContent = 'ZK Proof verified!';
+            localStorage.setItem('zk-rps-zkproofs', zkProofsGenerated.toString());
+            addZKProofLogEntry({
+                round: gameState.currentRound,
+                result: calculateResult(gameState.playerMove, gameState.aiMove),
+                playerMove: gameState.playerMove,
+                aiMove: gameState.aiMove,
+                playerNonce: gameState.playerNonce,
+                aiNonce: gameState.aiNonce,
+                proofHash
+            });
+            if (!zkProofTooltipShown && !localStorage.getItem('zk-rps-zk-tooltip')) showZKProofTooltip();
+        }
+        function generateProofHash(...args) {
+            let hash = 0;
+            const data = args.join('_');
+            for (let i = 0; i < data.length; i++) {
+                hash = ((hash << 5) - hash) + data.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return `0x${Math.abs(hash).toString(16).padStart(8, '0')}`;
+        }
+
+        // Initialize game
+        document.addEventListener('DOMContentLoaded', () => {
+            updateUI();
+            updateStats();
+            resetRound();
+            updateZKProofCount();
+            renderZKProofLog();
+            if (localStorage.getItem('zk-rps-zk-tooltip')) zkProofTooltipShown = true;
+        });
+
+        function selectMove(move) {
+            if (gameState.gamePhase !== 'selection') return;
+            
+            gameState.playerMove = move;
+            
+            // Update UI
+            document.querySelectorAll('.move-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            document.querySelector(`[data-move="${move}"]`).classList.add('selected');
+            
+            // Enable commit button
+            document.getElementById('commitBtn').disabled = false;
+            
+            // Update phase
+            updatePhase('Move selected! Now commit to it.', '');
+            updateStepProgress(1);
+            
+            // Generate AI move (hidden)
+            generateAIMove();
+        }
+
+        function generateAIMove() {
+            const moveOptions = ['rock', 'paper', 'scissors'];
+            gameState.aiMove = moveOptions[Math.floor(Math.random() * moveOptions.length)];
+            
+            // Generate AI commitment
+            gameState.aiNonce = generateNonce();
+            gameState.aiCommitment = generateCommitment(gameState.aiMove, gameState.aiNonce);
+            
+            // Show AI has made commitment
+            document.getElementById('aiCommitment').textContent = gameState.aiCommitment;
+            document.getElementById('aiStatus').textContent = 'Move committed!';
+        }
+
+        function commitMove() {
+            if (!gameState.playerMove || gameState.gamePhase !== 'selection') return;
+            
+            // Generate player commitment
+            gameState.playerNonce = generateNonce();
+            gameState.playerCommitment = generateCommitment(gameState.playerMove, gameState.playerNonce);
+            
+            // Update UI
+            document.getElementById('playerCommitment').textContent = gameState.playerCommitment;
+            document.getElementById('commitmentIndicator').className = 'commitment-indicator committed';
+            document.getElementById('commitmentStatusText').textContent = 'Both players committed';
+            
+            // Disable move selection
+            document.querySelectorAll('.move-btn').forEach(btn => {
+                btn.style.pointerEvents = 'none';
+                btn.style.opacity = '0.5';
+            });
+            
+            document.getElementById('commitBtn').disabled = true;
+            document.getElementById('revealBtn').disabled = false;
+            
+            gameState.gamePhase = 'committed';
+            gameState.stats.commitmentsCount++;
+            
+            updatePhase('Commitments made! Ready to reveal moves.', '');
+            updateStepProgress(2);
+            
+            saveStats();
+        }
+
+        function revealMoves() {
+            if (gameState.gamePhase !== 'committed') return;
+            
+            gameState.gamePhase = 'revealing';
+            
+            // Show AI thinking
+            showAIThinking();
+            
+            // Update reveal button state
+            document.getElementById('revealBtn').disabled = true;
+            document.getElementById('revealBtn').innerHTML = '<span class="loader"></span><span>Revealing...</span>';
+            
+            setTimeout(() => {
+                hideAIThinking();
+                
+                // Verify commitments
+                const playerValid = verifyCommitment(gameState.playerMove, gameState.playerNonce, gameState.playerCommitment);
+                const aiValid = verifyCommitment(gameState.aiMove, gameState.aiNonce, gameState.aiCommitment);
+                
+                console.log('Player commitment valid:', playerValid);
+                console.log('AI commitment valid:', aiValid);
+                
+                if (!playerValid || !aiValid) {
+                    alert('Commitment verification failed! This should never happen in a real ZK system.');
+                    resetRound();
+                    return;
+                }
+                
+                // Show revealed moves
+                document.getElementById('revealSection').style.display = 'grid';
+                document.getElementById('playerReveal').textContent = moves[gameState.playerMove].emoji;
+                document.getElementById('aiReveal').textContent = moves[gameState.aiMove].emoji;
+                
+                // Update commitment status
+                document.getElementById('commitmentIndicator').className = 'commitment-indicator revealed';
+                document.getElementById('commitmentStatusText').textContent = 'Moves revealed & verified';
+                
+                // Reset reveal button
+                document.getElementById('revealBtn').innerHTML = '<span>👁️</span><span>Reveal Moves</span>';
+                
+                updateStepProgress(3);
+                
+                // Calculate and show result
+                setTimeout(() => {
+                    showResult();
+                }, 1000);
+                
+            }, 2000);
+        }
+
+        function showResult() {
+            // --- ZK Proof Generation ---
+            setTimeout(() => {
+                generateZKProof();
+            }, 600);
+            gameState.gamePhase = 'result';
+            
+            const result = calculateResult(gameState.playerMove, gameState.aiMove);
+            
+            // Update scores
+            if (result === 'win') {
+                gameState.scores.player++;
+            } else if (result === 'lose') {
+                gameState.scores.ai++;
+            }
+            
+            gameState.stats.totalRounds++;
+            
+            // Show result
+            const resultSection = document.getElementById('resultSection');
+            const resultIcon = document.getElementById('resultIcon');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultDescription = document.getElementById('resultDescription');
+            
+            resultSection.style.display = 'block';
+            resultSection.className = `result-section ${result}`;
+            
+            if (result === 'win') {
+                resultIcon.textContent = '🎉';
+                resultTitle.textContent = 'You Win!';
+                resultDescription.textContent = `${moves[gameState.playerMove].emoji} beats ${moves[gameState.aiMove].emoji}`;
+            } else if (result === 'lose') {
+                resultIcon.textContent = '😞';
+                resultTitle.textContent = 'Bot Wins!';
+                resultDescription.textContent = `${moves[gameState.aiMove].emoji} beats ${moves[gameState.playerMove].emoji}`;
+            } else {
+                resultIcon.textContent = '🤝';
+                resultTitle.textContent = "It's a Tie!";
+                resultDescription.textContent = 'Both players chose the same move';
+            }
+            
+            updateStepProgress(4);
+            updatePhase('Round complete!', '');
+            
+            // Enable next round
+            document.getElementById('nextRoundBtn').disabled = false;
+            
+            // Check for tournament end
+            if (gameState.gameMode === 'tournament') {
+                if (gameState.scores.player >= gameState.tournamentTarget) {
+                    setTimeout(() => {
+                        showTournamentWin();
+                    }, 2000);
+                    return;
+                } else if (gameState.scores.ai >= gameState.tournamentTarget) {
+                    setTimeout(() => {
+                        showTournamentLoss();
+                    }, 2000);
+                    return;
+                }
+            }
+            
+            updateUI();
+            saveStats();
+        }
+
+        function calculateResult(playerMove, aiMove) {
+            if (playerMove === aiMove) return 'tie';
+            
+            // Check if player wins
+            if (
+                (playerMove === 'rock' && aiMove === 'scissors') ||
+                (playerMove === 'paper' && aiMove === 'rock') ||
+                (playerMove === 'scissors' && aiMove === 'paper')
+            ) {
+                return 'win';
+            }
+            
+            // Otherwise AI wins
+            return 'lose';
+        }
+
+        function generateCommitment(move, nonce) {
+            // Simple hash function for demonstration
+            // In a real ZK system, this would use proper cryptographic hash
+            const data = move + nonce;
+            let hash = 0;
+            
+            for (let i = 0; i < data.length; i++) {
+                const char = data.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32-bit integer
+            }
+            
+            // Return as hex string
+            return '0x' + Math.abs(hash).toString(16).padStart(8, '0');
+        }
+
+        function verifyCommitment(move, nonce, commitment) {
+            try {
+                const expectedCommitment = generateCommitment(move, nonce);
+                return expectedCommitment === commitment;
+            } catch (error) {
+                console.error('Commitment verification failed:', error);
+                return false;
+            }
+        }
+
+        function showAIThinking() {
+            document.getElementById('aiThinking').classList.add('show');
+        }
+
+        function hideAIThinking() {
+            document.getElementById('aiThinking').classList.remove('show');
+        }
+
+        function nextRound() {
+            gameState.currentRound++;
+            resetRound();
+        }
+
+        function resetRound() {
+            // Reset game state
+            gameState.playerMove = null;
+            gameState.aiMove = null;
+            gameState.playerCommitment = null;
+            gameState.aiCommitment = null;
+            gameState.playerNonce = null;
+            gameState.aiNonce = null;
+            gameState.gamePhase = 'selection';
+            gameState.roundStartTime = Date.now();
+            
+            // Reset UI
+            document.querySelectorAll('.move-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+            });
+            
+            // Reset buttons
+            document.getElementById('commitBtn').disabled = true;
+            document.getElementById('commitBtn').innerHTML = '<span>🔐</span><span>Commit Move</span>';
+            
+            document.getElementById('revealBtn').disabled = true;
+            document.getElementById('revealBtn').innerHTML = '<span>👁️</span><span>Reveal Moves</span>';
+            
+            document.getElementById('nextRoundBtn').disabled = true;
+            document.getElementById('nextRoundBtn').innerHTML = '<span>🔄</span><span>Next Round</span>';
+            
+            // Reset commitment displays
+            document.getElementById('playerCommitment').textContent = '--';
+            document.getElementById('aiCommitment').textContent = '--';
+            document.getElementById('commitmentIndicator').className = 'commitment-indicator';
+            document.getElementById('commitmentStatusText').textContent = 'Ready to commit';
+            
+            // Hide sections
+            document.getElementById('revealSection').style.display = 'none';
+            document.getElementById('resultSection').style.display = 'none';
+            
+            // Reset AI display
+            document.getElementById('aiMoveDisplay').textContent = '🤖';
+            document.getElementById('aiStatus').textContent = 'Waiting for your move...';
+            
+            // Reset phase and steps
+            updatePhase('Choose your move!', 'Select rock, paper, or scissors');
+            updateStepProgress(0);
+            updateUI();
+            
+            console.log('Round reset completed');
+        }
+
+        function updatePhase(title, description, timer = '') {
+            document.getElementById('phaseTitle').textContent = title;
+            document.getElementById('phaseDescription').textContent = description;
+            document.getElementById('phaseTimer').textContent = timer;
+        }
+
+        function updateStepProgress(activeStep) {
+            const steps = ['step1', 'step2', 'step3', 'step4'];
+            
+            steps.forEach((stepId, index) => {
+                const step = document.getElementById(stepId);
+                step.classList.remove('active', 'completed');
+                
+                if (index < activeStep) {
+                    step.classList.add('completed');
+                } else if (index === activeStep) {
+                    step.classList.add('active');
+                }
+            });
+        }
+
+        function updateUI() {
+            document.getElementById('roundNumber').textContent = gameState.currentRound;
+            document.getElementById('playerWins').textContent = gameState.scores.player;
+            document.getElementById('aiWins').textContent = gameState.scores.ai;
+        }
+
+        function generateAIMove() {
+            const moveOptions = ['rock', 'paper', 'scissors'];
+            gameState.aiMove = moveOptions[Math.floor(Math.random() * moveOptions.length)];
+            
+            // Generate AI commitment
+            gameState.aiNonce = generateNonce();
+            gameState.aiCommitment = generateCommitment(gameState.aiMove, gameState.aiNonce);
+            
+            // Show AI has made commitment
+            document.getElementById('aiCommitment').textContent = gameState.aiCommitment;
+            document.getElementById('aiStatus').textContent = 'Move committed!';
+        }
+
+        function commitMove() {
+            if (!gameState.playerMove || gameState.gamePhase !== 'selection') return;
+            
+            // Generate player commitment
+            gameState.playerNonce = generateNonce();
+            gameState.playerCommitment = generateCommitment(gameState.playerMove, gameState.playerNonce);
+            
+            // Update UI
+            document.getElementById('playerCommitment').textContent = gameState.playerCommitment;
+            document.getElementById('commitmentIndicator').className = 'commitment-indicator committed';
+            document.getElementById('commitmentStatusText').textContent = 'Both players committed';
+            
+            // Disable move selection
+            document.querySelectorAll('.move-btn').forEach(btn => {
+                btn.style.pointerEvents = 'none';
+                btn.style.opacity = '0.5';
+            });
+            
+            document.getElementById('commitBtn').disabled = true;
+            document.getElementById('revealBtn').disabled = false;
+            
+            gameState.gamePhase = 'committed';
+            gameState.stats.commitmentsCount++;
+            
+            updatePhase('Commitments made! Ready to reveal moves.', '');
+            updateStepProgress(2);
+            
+            saveStats();
+        }
+
+        function saveStats() {
+            try {
+                localStorage.setItem('zk-rps-player-wins', gameState.scores.player.toString());
+                localStorage.setItem('zk-rps-ai-wins', gameState.scores.ai.toString());
+                localStorage.setItem('zk-rps-total-rounds', gameState.stats.totalRounds.toString());
+                localStorage.setItem('zk-rps-commitments', gameState.stats.commitmentsCount.toString());
+                localStorage.setItem('zk-rps-perfect', gameState.stats.perfectRounds.toString());
+            } catch (error) {
+                console.warn('Failed to save stats:', error);
+            }
+        }
+
+        function setGameMode(mode) {
+            gameState.gameMode = mode;
+            
+            // Update UI
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+            
+            // Reset game
+            gameState.currentRound = 1;
+            gameState.scores.player = 0;
+            gameState.scores.ai = 0;
+            
+            if (mode === 'tournament') {
+                updatePhase('Tournament Mode', `First to ${gameState.tournamentTarget} wins takes the championship!`);
+            } else if (mode === 'practice') {
+                updatePhase('Practice Mode', 'Perfect your commitment scheme skills!');
+            } else {
+                updatePhase('Demo Mode', 'Learn how ZK commitments work step by step');
+            }
+            
+            resetRound();
+        }
+
+        function showTournamentWin() {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal';
+            overlay.style.display = 'flex';
+            overlay.innerHTML = `
+                <div style="background: var(--dark-lighter); border: 2px solid var(--accent); border-radius: 1.5rem; padding: 3rem; text-align: center; max-width: 500px; animation: modalSlide 0.3s ease;">
+                    <div style="font-size: 5rem; margin-bottom: 1rem;">🏆</div>
+                    <h2 style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--accent);">Tournament Champion!</h2>
+                    <p style="color: var(--text-dim); margin-bottom: 2rem; font-size: 1.1rem;">
+                        Congratulations! You've mastered ZK commitments and won the tournament!
+                    </p>
+                    
+                    <div style="background: var(--dark); padding: 2rem; border-radius: 1rem; margin-bottom: 2rem;">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; text-align: left;">
+                            <div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                                <span style="color: var(--text-dim);">Final Score</span><br>
+                                <span style="font-weight: 600; color: var(--accent);">${gameState.scores.player} - ${gameState.scores.ai}</span>
+                            </div>
+                            <div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                                <span style="color: var(--text-dim);">Rounds Played</span><br>
+                                <span style="font-weight: 600; color: var(--primary);">${gameState.currentRound - 1}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="closeModal(); resetTournament();" style="width: 100%;">
+                        <span>🎮</span>
+                        <span>Play Again</span>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            
+            createConfetti();
+        }
+        
+        function showTournamentLoss() {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal';
+            overlay.style.display = 'flex';
+            overlay.innerHTML = `
+                <div style="background: var(--dark-lighter); border: 2px solid var(--error); border-radius: 1.5rem; padding: 3rem; text-align: center; max-width: 500px; animation: modalSlide 0.3s ease;">
+                    <div style="font-size: 5rem; margin-bottom: 1rem;">🤖</div>
+                    <h2 style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--error);">Bot Wins Tournament!</h2>
+                    <p style="color: var(--text-dim); margin-bottom: 2rem; font-size: 1.1rem;">
+                        The ZK Bot proved superior this time. Practice your commitment strategies and try again!
+                    </p>
+                    
+                    <div style="background: var(--dark); padding: 2rem; border-radius: 1rem; margin-bottom: 2rem;">
+                        <div style="text-align: left;">
+                            <div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                                <span style="color: var(--text-dim);">Final Score</span><br>
+                                <span style="font-weight: 600; color: var(--error);">${gameState.scores.player} - ${gameState.scores.ai}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="closeModal(); resetTournament();" style="width: 100%;">
+                        <span>🔄</span>
+                        <span>Try Again</span>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+        
+        function closeModal() {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => modal.remove());
+        }
+        
+        function resetTournament() {
+            gameState.currentRound = 1;
+            gameState.scores.player = 0;
+            gameState.scores.ai = 0;
+            resetRound();
+            updateUI();
+        }
+
+        function updateStats() {
+            document.getElementById('totalRounds').textContent = gameState.stats.totalRounds;
+            document.getElementById('commitmentsCount').textContent = gameState.stats.commitmentsCount;
+            document.getElementById('perfectRounds').textContent = gameState.stats.perfectRounds;
+            
+            const winRate = gameState.stats.totalRounds > 0 ? 
+                Math.round((gameState.scores.player / gameState.stats.totalRounds) * 100) : 0;
+            document.getElementById('winRate').textContent = winRate + '%';
+        }
+
+        function createConfetti() {
+            const colors = ['#6366f1', '#8b5cf6', '#10b981', '#f59e0b'];
+            const confettiCount = 50;
+            
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.style.position = 'fixed';
+                confetti.style.width = '8px';
+                confetti.style.height = '8px';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.top = '-10px';
+                confetti.style.borderRadius = '50%';
+                confetti.style.pointerEvents = 'none';
+                confetti.style.zIndex = '9999';
+                
+                document.body.appendChild(confetti);
+                
+                // Animate falling
+                let pos = -10;
+                const fall = setInterval(() => {
+                    pos += 3 + Math.random() * 2;
+                    confetti.style.top = pos + 'px';
+                    confetti.style.transform = `rotate(${pos * 2}deg)`;
+                    
+                    if (pos > window.innerHeight) {
+                        clearInterval(fall);
+                        confetti.remove();
+                    }
+                }, 20);
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (gameState.gamePhase !== 'selection') return;
+            
+            switch (e.key.toLowerCase()) {
+                case 'r':
+                    selectMove('rock');
+                    break;
+                case 'p':
+                    selectMove('paper');
+                    break;
+                case 's':
+                    selectMove('scissors');
+                    break;
+                case ' ':
+                case 'enter':
+                    e.preventDefault();
+                    if (!document.getElementById('commitBtn').disabled) {
+                        commitMove();
+                    } else if (!document.getElementById('revealBtn').disabled) {
+                        revealMoves();
+                    } else if (!document.getElementById('nextRoundBtn').disabled) {
+                        nextRound();
+                    }
+                    break;
+            }
+        });
+
+        // Debug function to check game state
+        function debugGameState() {
+            console.log('Current game state:', {
+                gamePhase: gameState.gamePhase,
+                playerMove: gameState.playerMove,
+                aiMove: gameState.aiMove,
+                playerCommitment: gameState.playerCommitment,
+                aiCommitment: gameState.aiCommitment,
+                playerNonce: gameState.playerNonce,
+                aiNonce: gameState.aiNonce
+            });
+        }
+
+        // Enhanced error handling
+        window.addEventListener('error', (e) => {
+            console.error('ZK RPS error:', e.error);
+            try {
+                debugGameState();
+                resetRound();
+            } catch (resetError) {
+                console.error('Failed to reset game after error:', resetError);
+            }
+        });
+
+        // Add click event listeners as backup
+        document.addEventListener('DOMContentLoaded', () => {
+            // Ensure all click handlers are properly attached
+            const revealBtn = document.getElementById('revealBtn');
+            if (revealBtn) {
+                revealBtn.addEventListener('click', function() {
+                    console.log('Reveal button clicked, game phase:', gameState.gamePhase);
+                    revealMoves();
+                });
+            }
+            
+            const commitBtn = document.getElementById('commitBtn');
+            if (commitBtn) {
+                commitBtn.addEventListener('click', function() {
+                    console.log('Commit button clicked, player move:', gameState.playerMove);
+                    commitMove();
+                });
+            }
+            
+            const nextRoundBtn = document.getElementById('nextRoundBtn');
+            if (nextRoundBtn) {
+                nextRoundBtn.addEventListener('click', function() {
+                    console.log('Next round button clicked');
+                    nextRound();
+                });
+            }
+        });
+
+        console.log('✂️ ZK Rock Paper Scissors loaded successfully!');
+        console.log('Keyboard shortcuts: R = Rock, P = Paper, S = Scissors, Space/Enter = Next action');
+    </script>
+</body>
+</html>

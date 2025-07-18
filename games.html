@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZK Gaming Hub - Choose Your Game</title>
+    <meta name="description" content="Discover and play interactive Zero-Knowledge games! Learn cryptography, commitment schemes, and privacy tech through fun, educational browser games. ZK Gaming Hub is your portal to mastering ZK proofs while having fun.">
+    <!-- Open Graph Meta Tags for SEO & Social Sharing -->
+    <meta property="og:title" content="ZK Gaming Hub - Play Zero-Knowledge Games Online">
+    <meta property="og:description" content="Play interactive Zero-Knowledge games and learn cryptography through fun browser challenges. Prove your skills, protect your secrets!">
+    <meta property="og:image" content="images/games/zk_rps.png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sp1-gaming-hub.vercel.app/games.html">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ZK Gaming Hub - Play Zero-Knowledge Games Online">
+    <meta name="twitter:description" content="Play interactive Zero-Knowledge games and learn cryptography through fun browser challenges. Prove your skills, protect your secrets!">
+    <meta name="twitter:image" content="images/games/zk_rps.png">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/zkhub-optimizations.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #475569;
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: #94a3b8;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: #e2e8f0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+        }
+
+        .difficulty-section {
+            margin-bottom: 3rem;
+        }
+
+        .difficulty-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #e2e8f0;
+            border-bottom: 2px solid #475569;
+            padding-bottom: 0.5rem;
+        }
+
+        .difficulty-title.beginner {
+            color: #10b981;
+            border-color: #10b981;
+        }
+
+        .difficulty-title.intermediate {
+            color: #f59e0b;
+            border-color: #f59e0b;
+        }
+
+        .difficulty-title.advanced {
+            color: #ef4444;
+            border-color: #ef4444;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .game-card {
+            background: #1e293b;
+            border: 2px solid #475569;
+            border-radius: 1rem;
+            overflow: hidden;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            border-color: #6366f1;
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
+        }
+
+        .game-image {
+            height: 200px;
+            background: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-preview {
+            transition: transform 0.25s cubic-bezier(.4,2,.6,1), box-shadow 0.25s;
+            box-shadow: 0 2px 16px rgba(99,102,241,0.10);
+        }
+
+        .game-card:hover .game-preview {
+            transform: scale(1.08);
+            box-shadow: 0 8px 32px rgba(99,102,241,0.25), 0 1.5px 12px rgba(139,92,246,0.10);
+            z-index: 1;
+        }
+
+        .game-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-easy { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .badge-medium { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .badge-hard { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+        .game-info {
+            padding: 1.5rem;
+        }
+
+        .game-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #6366f1;
+        }
+
+        .game-description {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        .game-tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .game-tag {
+            padding: 0.25rem 0.75rem;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid #6366f1;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            color: #6366f1;
+        }
+
+        .coming-soon-section {
+            text-align: center;
+            padding: 3rem 2rem;
+            background: #1e293b;
+            border-radius: 1rem;
+            border: 2px dashed #475569;
+        }
+
+        .coming-soon-title {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #6366f1;
+        }
+
+        @media (max-width: 768px) {
+            .games-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="/index.html" class="logo">
+                <img src="images/logo.png" alt="ZK Gaming Hub Logo" class="logo-img">
+            </a>
+            <div class="nav-links">
+                <a href="/index.html" class="nav-link">← Back to Home</a>
+                <a href="/coming-soon.html" class="nav-link">What's Coming</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <section class="hero">
+            <h1 class="hero-title">Choose Your ZK Adventure</h1>
+            <p class="hero-subtitle">
+                Each game teaches different Zero-Knowledge concepts through interactive gameplay
+            </p>
+        </section>
+
+        <!-- Beginner Games -->
+        <section class="difficulty-section">
+            <h2 class="difficulty-title beginner">🟢 Beginner Games</h2>
+            <div class="games-grid">
+                <a href="proof-puzzle.html" class="game-card">
+                    <div class="game-image">
+                        <img src="images/games/proof_puzzle.png" alt="Proof Puzzle preview" class="game-preview" style="width: 100%; max-width: 180px; border-radius: 1rem; margin-bottom: 0.5rem;" loading="lazy">
+                        🧩
+                        <span class="game-badge badge-easy">Beginner</span>
+                    </div>
+                    <div class="game-info">
+                        <h3 class="game-title">Proof Puzzle</h3>
+                        <p class="game-description">
+                            Learn ZK fundamentals through interactive puzzles. Perfect introduction to Zero-Knowledge concepts.
+                        </p>
+                        <div class="game-tags">
+                            <span class="game-tag">Educational</span>
+                            <span class="game-tag">Interactive</span>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="zk_xo_game.html" class="game-card">
+                    <div class="game-image">
+                        <img src="images/games/zk_xo.png" alt="ZK XO preview" class="game-preview" style="width: 100%; max-width: 180px; border-radius: 1rem; margin-bottom: 0.5rem;" loading="lazy">
+                        ❌⭕️
+                        <span class="game-badge badge-easy">Beginner</span>
+                    </div>
+                    <div class="game-info">
+                        <h3 class="game-title">ZK XO</h3>
+                        <p class="game-description">
+                            Play Tic-Tac-Toe with zero-knowledge proofs! Commit, hide, and prove your moves without revealing them.
+                        </p>
+                        <div class="game-tags">
+                            <span class="game-tag">Classic</span>
+                            <span class="game-tag">Commitment</span>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="zk_rps_game.html" class="game-card">
+                    <div class="game-image">
+                        <img src="images/games/zk_rps.png" alt="ZK Rock Paper Scissors preview" class="game-preview" style="width: 100%; max-width: 180px; border-radius: 1rem; margin-bottom: 0.5rem;" loading="lazy">
+                        ✊✋✌️
+                        <span class="game-badge badge-easy">Beginner</span>
+                    </div>
+                    <div class="game-info">
+                        <h3 class="game-title">ZK Rock Paper Scissors</h3>
+                        <p class="game-description">
+                            Play Rock Paper Scissors with zero-knowledge commitments! Prove your move without revealing it until the reveal phase.
+                        </p>
+                        <div class="game-tags">
+                            <span class="game-tag">Commitment</span>
+                            <span class="game-tag">ZK Proof</span>
+                            <span class="game-tag">Classic</span>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="zk_snake_game.html" class="game-card">
+                    <div class="game-image">
+                        <img src="images/games/zk_snake.png" alt="ZK Snake preview" class="game-preview" style="width: 100%; max-width: 180px; border-radius: 1rem; margin-bottom: 0.5rem;" loading="lazy">
+                        🐍
+                        <span class="game-badge badge-easy">Beginner</span>
+                    </div>
+                    <div class="game-info">
+                        <h3 class="game-title">ZK Snake</h3>
+                        <p class="game-description">
+                            Eat, grow, and prove your path! Experience classic Snake gameplay with a zero-knowledge twist—prove your moves without revealing them.
+                        </p>
+                        <div class="game-tags">
+                            <span class="game-tag">Classic</span>
+                            <span class="game-tag">Path Proof</span>
+                            <span class="game-tag">ZK Proof</span>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="zk_egg_catcher.html" class="game-card">
+                    <div class="game-image">
+                        <img src="images/games/zk_egg_catcher.png" alt="ZK Egg Catcher preview" class="game-preview" style="width: 100%; max-width: 180px; border-radius: 1rem; margin-bottom: 0.5rem;" loading="lazy">
+                        🥚
+                        <span class="game-badge badge-easy">Beginner</span>
+                    </div>
+                    <div class="game-info">
+                        <h3 class="game-title">ZK Egg Catcher</h3>
+                        <p class="game-description">
+                            Catch falling eggs to incubate Zero-Knowledge proofs! Learn about proof composition and cryptographic commitment schemes through engaging gameplay.
+                        </p>
+                        <div class="game-tags">
+                            <span class="game-tag">Reflex</span>
+                            <span class="game-tag">Proofs</span>
+                            <span class="game-tag">ZK Learning</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- Intermediate Games -->
+        <section class="difficulty-section">
+            <h2 class="difficulty-title intermediate">🟡 Intermediate Games</h2>
+            <div class="games-grid">
+                <a href="sudoku-game.html" class="game-card">
+                    <div class="game-image">
+                        <img src="images/games/zk_sudoku.png" alt="ZK Sudoku preview" class="game-preview" style="width: 100%; max-width: 180px; border-radius: 1rem; margin-bottom: 0.5rem;" loading="lazy">
+                        🔢
+                        <span class="game-badge badge-medium">Intermediate</span>
+                    </div>
+                    <div class="game-info">
+                        <h3 class="game-title">ZK Sudoku</h3>
+                        <p class="game-description">
+                            Solve Sudoku puzzles and prove your solution without revealing it. Learn about commitment schemes and complex constraint verification.
+                        </p>
+                        <div class="game-tags">
+                            <span class="game-tag">Logic</span>
+                            <span class="game-tag">Proofs</span>
+                            <span class="game-tag">Constraints</span>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="memory-matrix.html" class="game-card">
+                    <div class="game-image">
+                        <img src="images/games/memory_matrix.png" alt="Memory Matrix preview" class="game-preview" style="width: 100%; max-width: 180px; border-radius: 1rem; margin-bottom: 0.5rem;" loading="lazy">
+                        🧠
+                        <span class="game-badge badge-medium">Intermediate</span>
+                    </div>
+                    <div class="game-info">
+                        <h3 class="game-title">Memory Matrix</h3>
+                        <p class="game-description">
+                            Test your memory while learning about Zero-Knowledge memory proofs and pattern verification. Master sequential proof construction.
+                        </p>
+                        <div class="game-tags">
+                            <span class="game-tag">Memory</span>
+                            <span class="game-tag">Patterns</span>
+                            <span class="game-tag">Sequential</span>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="zk-flow-state.html" class="game-card">
+                    <div class="game-image">
+                        <img src="images/games/zk_flow_state.png" alt="ZK Flow State preview" class="game-preview" style="width: 100%; max-width: 180px; border-radius: 1rem; margin-bottom: 0.5rem;" loading="lazy">
+                        🔄
+                        <span class="game-badge badge-medium">Intermediate</span>
+                    </div>
+                    <div class="game-info">
+                        <h3 class="game-title">ZK Flow State</h3>
+                        <p class="game-description">
+                            Connect proof paths from prover to verifier. Learn how ZK circuits create valid proof flows and understand circuit composition.
+                        </p>
+                        <div class="game-tags">
+                            <span class="game-tag">Circuits</span>
+                            <span class="game-tag">Logic</span>
+                            <span class="game-tag">Flow</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- Advanced Games -->
+        <section class="difficulty-section">
+            <h2 class="difficulty-title advanced">🔴 Advanced Games</h2>
+            <div class="games-grid">
+                <a href="proof-racing.html" class="game-card">
+                    <div class="game-image">
+                        <img src="images/games/proof_racing.png" alt="Proof Racing preview" class="game-preview" style="width: 100%; max-width: 180px; border-radius: 1rem; margin-bottom: 0.5rem;" loading="lazy">
+                        🏁
+                        <span class="game-badge badge-hard">Advanced</span>
+                    </div>
+                    <div class="game-info">
+                        <h3 class="game-title">Proof Racing</h3>
+                        <p class="game-description">
+                            Race against AI to generate proofs quickly. Test your speed and accuracy in complex ZK challenges with time pressure and optimization.
+                        </p>
+                        <div class="game-tags">
+                            <span class="game-tag">Speed</span>
+                            <span class="game-tag">Competition</span>
+                            <span class="game-tag">Optimization</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <section class="coming-soon-section">
+            <h2 class="coming-soon-title">🚀 More Games Coming Soon!</h2>
+            <p style="color: #94a3b8; margin-bottom: 2rem;">
+                We're working on multiplayer battles, advanced ZK protocols, and tournament modes!
+            </p>
+            <a href="/coming-soon" style="color: #6366f1; text-decoration: none; font-weight: 500;">
+                See What's Coming Next →
+            </a>
+        </section>
+    </div>
+
+    <script>
+        // Simple analytics (no auth needed)
+        function trackGameClick(gameId) {
+            console.log(`🎮 Starting game: ${gameId}`);
+            
+            // Save to localStorage for simple progress tracking
+            const games = JSON.parse(localStorage.getItem('gamesPlayed') || '[]');
+            if (!games.includes(gameId)) {
+                games.push(gameId);
+                localStorage.setItem('gamesPlayed', JSON.stringify(games));
+            }
+        }
+
+        // Add click tracking to game cards
+        document.querySelectorAll('.game-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const href = card.getAttribute('href');
+                const gameId = href.replace('/', '');
+                trackGameClick(gameId);
+            });
+        });
+
+        console.log('🎮 ZK Gaming Hub - Choose your adventure!');
+    </script>
+    <script src="js/zkhub-optimizations.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').then(function(registration) {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
+</body>
+</html>

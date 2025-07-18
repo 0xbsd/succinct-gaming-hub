@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZK Egg Catcher - Proof Incubation Game</title>
+    <meta name="description" content="Catch falling eggs to incubate Zero-Knowledge proofs! Learn about proof composition and cryptographic commitment schemes through engaging gameplay.">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --accent: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --dark: #0f172a;
+            --dark-lighter: #1e293b;
+            --dark-card: #334155;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --border: #475569;
+            --regular-egg: #6366f1;
+            --golden-egg: #f59e0b;
+            --crystal-egg: #8b5cf6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--dark);
+            color: var(--text);
+            min-height: 100vh;
+            padding-top: 80px;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        .nav-header {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--text);
+        }
+
+        /* Animated Background */
+        .egg-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .floating-egg {
+            position: absolute;
+            font-size: 2rem;
+            opacity: 0.05;
+            animation: float 20s linear infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0.05;
+            }
+            50% {
+                opacity: 0.1;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Main Container */
+        .game-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 3rem;
+            align-items: start;
+        }
+
+        /* Header */
+        .game-header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .game-title {
+            font-size: 4rem;
+            background: linear-gradient(135deg, var(--primary), var(--golden-egg), var(--crystal-egg));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .game-subtitle {
+            font-size: 1.3rem;
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+        }
+
+        /* Game Stats */
+        .game-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: var(--dark-card);
+            border-radius: 0.75rem;
+            border: 2px solid var(--border);
+            min-width: 120px;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-dim);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-value.score { color: var(--warning); }
+        .stat-value.level { color: var(--accent); }
+        .stat-value.combo { color: var(--crystal-egg); }
+
+        /* Main Game Area */
+        .game-board-container {
+            background: var(--dark-lighter);
+            border: 2px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Game Canvas */
+        .game-canvas-container {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .game-canvas {
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(180deg, var(--dark) 0%, var(--dark-lighter) 100%);
+            border: 3px solid var(--border);
+            border-radius: 1rem;
+            position: relative;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+
+        /* Basket */
+        .basket {
+            position: absolute;
+            bottom: 20px;
+            width: 80px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), var(--primary));
+            border-radius: 10px 10px 40px 40px;
+            border: 3px solid var(--border);
+            transition: left 0.1s ease;
+            z-index: 10;
+        }
+
+        .basket::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 10px;
+            right: 10px;
+            height: 8px;
+            background: var(--dark-card);
+            border-radius: 4px;
+        }
+
+        /* Eggs */
+        .egg {
+            position: absolute;
+            width: 40px;
+            height: 50px;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border: 2px solid;
+            animation: fall linear;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .egg:hover {
+            transform: scale(1.1);
+        }
+
+        .egg.regular {
+            background: var(--regular-egg);
+            border-color: var(--primary-dark);
+            color: white;
+            animation: fall linear, gentleWobble 2s ease-in-out infinite;
+        }
+
+        .egg.golden {
+            background: linear-gradient(45deg, var(--golden-egg), #fbbf24);
+            border-color: #d97706;
+            color: var(--dark);
+            animation: fall linear, goldenShimmer 1.5s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+        }
+
+        .egg.crystal {
+            background: linear-gradient(45deg, var(--crystal-egg), #a855f7);
+            border-color: #7c3aed;
+            color: white;
+            animation: fall linear, crystalPulse 1s ease-in-out infinite;
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.8);
+        }
+
+        @keyframes fall {
+            from { transform: translateY(-60px); }
+            to { transform: translateY(520px); }
+        }
+
+        @keyframes gentleWobble {
+            0%, 100% { transform: rotate(-2deg); }
+            50% { transform: rotate(2deg); }
+        }
+
+        @keyframes goldenShimmer {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+                filter: brightness(1.3);
+            }
+            50% { 
+                box-shadow: 0 0 30px rgba(245, 158, 11, 0.9);
+                filter: brightness(1.6);
+            }
+        }
+
+        @keyframes crystalPulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 30px rgba(139, 92, 246, 0.8);
+            }
+            50% { 
+                transform: scale(1.1);
+                box-shadow: 0 0 40px rgba(139, 92, 246, 1.2);
+            }
+        }
+
+        /* Particles */
+        .particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particleFloat 1s ease-out forwards;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.5) translateY(-50px);
+            }
+        }
+
+        /* Proof Incubator */
+        .proof-incubator {
+            background: var(--dark-card);
+            border: 2px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .incubator-title {
+            color: var(--primary);
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .incubator-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .incubator-item {
+            background: var(--dark);
+            border: 2px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .incubator-item.active {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .incubator-item.hatching {
+            border-color: var(--accent);
+            background: rgba(16, 185, 129, 0.1);
+            animation: hatch 2s ease-in-out infinite;
+        }
+
+        @keyframes hatch {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .incubator-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .incubator-count {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .incubator-label {
+            font-size: 0.875rem;
+            color: var(--text-dim);
+            margin-top: 0.25rem;
+        }
+
+        /* Control Buttons */
+        .control-section {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Side Panel */
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .info-card {
+            background: var(--dark-lighter);
+            border: 2px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+        }
+
+        .info-card h3 {
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.3rem;
+        }
+
+        /* Egg Types Legend */
+        .egg-types {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .egg-type {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--dark-card);
+            border-radius: 0.75rem;
+            border: 2px solid var(--border);
+        }
+
+        .egg-type-icon {
+            width: 40px;
+            height: 50px;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: 2px solid;
+        }
+
+        .egg-type-icon.regular {
+            background: var(--regular-egg);
+            border-color: var(--primary-dark);
+            color: white;
+        }
+
+        .egg-type-icon.golden {
+            background: linear-gradient(45deg, var(--golden-egg), #fbbf24);
+            border-color: #d97706;
+            color: var(--dark);
+        }
+
+        .egg-type-icon.crystal {
+            background: linear-gradient(45deg, var(--crystal-egg), #a855f7);
+            border-color: #7c3aed;
+            color: white;
+        }
+
+        .egg-type-info {
+            flex: 1;
+        }
+
+        .egg-type-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .egg-type-description {
+            font-size: 0.875rem;
+            color: var(--text-dim);
+            margin-bottom: 0.5rem;
+        }
+
+        .egg-type-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .egg-stat {
+            color: var(--accent);
+        }
+
+        /* Game Over Modal */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 2rem;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--dark-lighter);
+            border: 2px solid var(--accent);
+            border-radius: 1.5rem;
+            padding: 3rem;
+            text-align: center;
+            max-width: 500px;
+            animation: modalSlide 0.3s ease;
+        }
+
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-icon {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            animation: bounce 1s ease infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .game-container {
+                grid-template-columns: 1fr;
+                padding: 0 1rem;
+            }
+
+            .game-title {
+                font-size: 2.5rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            body {
+                padding-top: 60px;
+            }
+
+            .game-stats {
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+
+            .control-section {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+
+            .incubator-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .game-canvas {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav-header">
+        <div class="nav-content">
+            <a href="/games.html" class="logo">
+                <span>🎮</span>
+                <span>ZK Gaming Hub</span>
+            </a>
+            <div class="nav-links">
+                <a href="/games.html" class="nav-link">← Back to Games</a>
+                <a href="/index.html" class="nav-link">Home</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Animated Background -->
+    <div class="egg-bg" id="eggBg"></div>
+
+    <div class="game-container">
+        <!-- Header -->
+        <div class="game-header">
+            <h1 class="game-title">
+                <span>🥚</span>
+                <span>ZK Egg Catcher</span>
+            </h1>
+            <p class="game-subtitle">Catch eggs to incubate Zero-Knowledge proofs and learn about proof composition!</p>
+            
+            <!-- Game Stats -->
+            <div class="game-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Score</span>
+                    <span class="stat-value score" id="score">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Level</span>
+                    <span class="stat-value level" id="level">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Combo</span>
+                    <span class="stat-value combo" id="combo">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Lives</span>
+                    <span class="stat-value" id="lives">❤️❤️❤️</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Game Area -->
+        <div class="game-board-container">
+            <!-- Game Canvas -->
+            <div class="game-canvas-container">
+                <div class="game-canvas" id="gameCanvas">
+                    <div class="basket" id="basket"></div>
+                </div>
+            </div>
+
+            <!-- Proof Incubator -->
+            <div class="proof-incubator">
+                <h3 class="incubator-title">
+                    <span>🔬</span>
+                    <span>Proof Incubator</span>
+                </h3>
+                
+                <div class="incubator-grid">
+                    <div class="incubator-item" id="regularFragments">
+                        <div class="incubator-icon">🧩</div>
+                        <div class="incubator-count" id="regularCount">0</div>
+                        <div class="incubator-label">Basic Fragments</div>
+                    </div>
+                    
+                    <div class="incubator-item" id="witnessFragments">
+                        <div class="incubator-icon">⚡</div>
+                        <div class="incubator-count" id="witnessCount">0</div>
+                        <div class="incubator-label">Witness Fragments</div>
+                    </div>
+                    
+                    <div class="incubator-item" id="completeProofs">
+                        <div class="incubator-icon">🔐</div>
+                        <div class="incubator-count" id="proofsCount">0</div>
+                        <div class="incubator-label">Complete Proofs</div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; color: var(--text-dim); font-size: 0.875rem;">
+                    5 Basic → 1 Witness | 3 Witness → 1 Complete Proof
+                </div>
+            </div>
+
+            <!-- Control Section -->
+            <div class="control-section">
+                <button class="btn btn-secondary" onclick="pauseGame()" id="pauseBtn">
+                    <span>⏸️</span>
+                    <span>Pause</span>
+                </button>
+                <button class="btn btn-primary" onclick="startGame()" id="startBtn">
+                    <span>▶️</span>
+                    <span>Start Game</span>
+                </button>
+                <button class="btn btn-secondary" onclick="resetGame()">
+                    <span>🔄</span>
+                    <span>Reset</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Side Panel -->
+        <div class="side-panel">
+            <!-- Egg Types -->
+            <div class="info-card">
+                <h3>🥚 Egg Types</h3>
+                
+                <div class="egg-types">
+                    <div class="egg-type">
+                        <div class="egg-type-icon regular">🥚</div>
+                        <div class="egg-type-info">
+                            <div class="egg-type-name">Regular Egg</div>
+                            <div class="egg-type-description">Basic proof fragments</div>
+                            <div class="egg-type-stats">
+                                <span class="egg-stat">70% spawn rate</span>
+                                <span class="egg-stat">+10 points</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="egg-type">
+                        <div class="egg-type-icon golden">🌟</div>
+                        <div class="egg-type-info">
+                            <div class="egg-type-name">Golden Egg</div>
+                            <div class="egg-type-description">Witness fragments</div>
+                            <div class="egg-type-stats">
+                                <span class="egg-stat">25% spawn rate</span>
+                                <span class="egg-stat">+50 points</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="egg-type">
+                        <div class="egg-type-icon crystal">💎</div>
+                        <div class="egg-type-info">
+                            <div class="egg-type-name">Crystal Egg</div>
+                            <div class="egg-type-description">Complete proofs</div>
+                            <div class="egg-type-stats">
+                                <span class="egg-stat">5% spawn rate</span>
+                                <span class="egg-stat">+200 points</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ZK Concepts -->
+            <div class="info-card">
+                <h3>🧠 ZK Concepts</h3>
+                
+                <div style="color: var(--text-dim); font-size: 0.9rem; line-height: 1.6;">
+                    <div style="margin-bottom: 1rem;">
+                        <strong style="color: var(--primary);">Proof Composition:</strong> Learn how smaller proof fragments combine to create complete Zero-Knowledge proofs.
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <strong style="color: var(--accent);">Witness Generation:</strong> Understand how witnesses are created from basic cryptographic building blocks.
+                    </div>
+                    
+                    <div>
+                        <strong style="color: var(--crystal-egg);">Complete Proofs:</strong> Experience the satisfaction of generating full Zero-Knowledge proofs through gameplay.
+                    </div>
+                </div>
+            </div>
+
+            <!-- High Scores -->
+            <div class="info-card">
+                <h3>🏆 High Scores</h3>
+                
+                <div id="highScores">
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                        <span>1. Proof Master</span>
+                        <span style="color: var(--accent);">15,420</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                        <span>2. Egg Hunter</span>
+                        <span style="color: var(--accent);">12,830</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                        <span>3. ZK Catcher</span>
+                        <span style="color: var(--accent);">10,650</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                        <span>Your Best:</span>
+                        <span style="color: var(--primary);" id="personalBest">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div class="modal" id="gameOverModal">
+        <div class="modal-content">
+            <div class="modal-icon" id="modalIcon">🥚</div>
+            <h2 style="font-size: 2.5rem; margin-bottom: 1rem;" id="modalTitle">Game Over!</h2>
+            <p style="color: var(--text-dim); margin-bottom: 2rem;" id="modalDescription">
+                Great job incubating Zero-Knowledge proofs!
+            </p>
+            
+            <div style="background: var(--dark); padding: 2rem; border-radius: 1rem; margin-bottom: 2rem;">
+                <h4 style="color: var(--primary); margin-bottom: 1rem;">📊 Final Statistics</h4>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; text-align: left;">
+                    <div>
+                        <div style="color: var(--text-dim); font-size: 0.875rem;">Final Score</div>
+                        <div style="font-size: 1.5rem; color: var(--warning);" id="finalScore">0</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-dim); font-size: 0.875rem;">Level Reached</div>
+                        <div style="font-size: 1.5rem; color: var(--accent);" id="finalLevel">1</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-dim); font-size: 0.875rem;">Eggs Caught</div>
+                        <div style="font-size: 1.5rem; color: var(--primary);" id="totalEggs">0</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-dim); font-size: 0.875rem;">Proofs Generated</div>
+                        <div style="font-size: 1.5rem; color: var(--crystal-egg);" id="totalProofs">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button class="btn btn-secondary" onclick="shareScore()">
+                    <span>📤</span>
+                    <span>Share Score</span>
+                </button>
+                <button class="btn btn-primary" onclick="playAgain()">
+                    <span>🎮</span>
+                    <span>Play Again</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            score: 0,
+            level: 1,
+            lives: 3,
+            combo: 0,
+            isGameRunning: false,
+            isPaused: false,
+            eggs: [],
+            basketPosition: 50, // percentage
+            proofIncubator: {
+                regularFragments: 0,
+                witnessFragments: 0,
+                completeProofs: 0
+            },
+            stats: {
+                totalEggs: 0,
+                totalProofs: 0,
+                personalBest: parseInt(localStorage.getItem('zk-egg-catcher-best') || '0')
+            },
+            gameSpeed: 1,
+            spawnRate: 2000, // milliseconds
+            lastSpawn: 0
+        };
+
+        // Egg Types Configuration
+        const eggTypes = {
+            regular: {
+                type: 'regular',
+                emoji: '🥚',
+                points: 10,
+                zkValue: 1,
+                spawnRate: 0.7,
+                fallSpeed: 2,
+                effect: 'basicProofFragment'
+            },
+            golden: {
+                type: 'golden',
+                emoji: '🌟',
+                points: 50,
+                zkValue: 5,
+                spawnRate: 0.25,
+                fallSpeed: 1.5,
+                effect: 'witnessFragment'
+            },
+            crystal: {
+                type: 'crystal',
+                emoji: '💎',
+                points: 200,
+                zkValue: 10,
+                spawnRate: 0.05,
+                fallSpeed: 1,
+                effect: 'completeProof'
+            }
+        };
+
+        // Game intervals
+        let gameLoop;
+        let spawnTimer;
+
+        // Initialize game
+        document.addEventListener('DOMContentLoaded', () => {
+            createBackgroundEggs();
+            updateUI();
+            updateIncubator();
+            setupMouseControls();
+            updatePersonalBest();
+        });
+
+        function createBackgroundEggs() {
+            const bg = document.getElementById('eggBg');
+            const eggEmojis = ['🥚', '🌟', '💎'];
+            
+            for (let i = 0; i < 15; i++) {
+                const egg = document.createElement('div');
+                egg.className = 'floating-egg';
+                egg.textContent = eggEmojis[Math.floor(Math.random() * eggEmojis.length)];
+                egg.style.left = Math.random() * 100 + '%';
+                egg.style.animationDelay = Math.random() * 20 + 's';
+                egg.style.animationDuration = (Math.random() * 10 + 15) + 's';
+                bg.appendChild(egg);
+            }
+        }
+
+        function setupMouseControls() {
+            const canvas = document.getElementById('gameCanvas');
+            const basket = document.getElementById('basket');
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (!gameState.isGameRunning || gameState.isPaused) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const maxX = rect.width - 80; // basket width
+                const clampedX = Math.max(0, Math.min(x - 40, maxX));
+                
+                gameState.basketPosition = (clampedX / maxX) * 100;
+                basket.style.left = clampedX + 'px';
+            });
+
+            // Touch support for mobile
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (!gameState.isGameRunning || gameState.isPaused) return;
+                
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const maxX = rect.width - 80;
+                const clampedX = Math.max(0, Math.min(x - 40, maxX));
+                
+                gameState.basketPosition = (clampedX / maxX) * 100;
+                basket.style.left = clampedX + 'px';
+            });
+        }
+
+        function startGame() {
+            gameState.isGameRunning = true;
+            gameState.isPaused = false;
+            gameState.lastSpawn = Date.now();
+            
+            // Update UI
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('pauseBtn').style.display = 'inline-flex';
+            
+            // Start game loops
+            gameLoop = setInterval(updateGame, 16); // 60 FPS
+            spawnTimer = setInterval(spawnEgg, gameState.spawnRate);
+        }
+
+        function pauseGame() {
+            gameState.isPaused = !gameState.isPaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+            
+            if (gameState.isPaused) {
+                pauseBtn.innerHTML = '<span>▶️</span><span>Resume</span>';
+                clearInterval(spawnTimer);
+            } else {
+                pauseBtn.innerHTML = '<span>⏸️</span><span>Pause</span>';
+                spawnTimer = setInterval(spawnEgg, gameState.spawnRate);
+            }
+        }
+
+        function resetGame() {
+            gameState = {
+                score: 0,
+                level: 1,
+                lives: 3,
+                combo: 0,
+                isGameRunning: false,
+                isPaused: false,
+                eggs: [],
+                basketPosition: 50,
+                proofIncubator: {
+                    regularFragments: 0,
+                    witnessFragments: 0,
+                    completeProofs: 0
+                },
+                stats: {
+                    totalEggs: 0,
+                    totalProofs: 0,
+                    personalBest: parseInt(localStorage.getItem('zk-egg-catcher-best') || '0')
+                },
+                gameSpeed: 1,
+                spawnRate: 2000,
+                lastSpawn: 0
+            };
+            
+            // Clear intervals
+            clearInterval(gameLoop);
+            clearInterval(spawnTimer);
+            
+            // Clear eggs from canvas
+            const canvas = document.getElementById('gameCanvas');
+            const existingEggs = canvas.querySelectorAll('.egg');
+            existingEggs.forEach(egg => egg.remove());
+            
+            // Reset UI
+            document.getElementById('startBtn').style.display = 'inline-flex';
+            document.getElementById('pauseBtn').style.display = 'none';
+            
+            updateUI();
+            updateIncubator();
+        }
+
+        function updateGame() {
+            if (!gameState.isGameRunning || gameState.isPaused) return;
+            
+            // Update egg positions
+            gameState.eggs.forEach((egg, index) => {
+                egg.position += egg.speed * gameState.gameSpeed;
+                const eggElement = document.getElementById(`egg-${egg.id}`);
+                
+                if (eggElement) {
+                    eggElement.style.top = egg.position + 'px';
+                    
+                    // Check collision with basket
+                    if (checkCollision(egg)) {
+                        catchEgg(egg, index);
+                    }
+                    
+                    // Check if egg hit bottom
+                    else if (egg.position > 460) {
+                        missEgg(egg, index);
+                    }
+                }
+            });
+        }
+
+        function spawnEgg() {
+            if (!gameState.isGameRunning || gameState.isPaused) return;
+            
+            const eggType = determineEggType();
+            const egg = createEgg(eggType);
+            
+            gameState.eggs.push(egg);
+            renderEgg(egg);
+        }
+
+        function determineEggType() {
+            const rand = Math.random();
+            
+            if (rand < eggTypes.crystal.spawnRate) {
+                return eggTypes.crystal;
+            } else if (rand < eggTypes.crystal.spawnRate + eggTypes.golden.spawnRate) {
+                return eggTypes.golden;
+            } else {
+                return eggTypes.regular;
+            }
+        }
+
+        function createEgg(type) {
+            return {
+                id: Date.now() + Math.random(),
+                type: type.type,
+                position: -60,
+                x: Math.random() * 80 + 10, // 10-90% of canvas width
+                speed: type.fallSpeed,
+                points: type.points,
+                zkValue: type.zkValue,
+                emoji: type.emoji,
+                effect: type.effect
+            };
+        }
+
+        function renderEgg(egg) {
+            const canvas = document.getElementById('gameCanvas');
+            const eggElement = document.createElement('div');
+            
+            eggElement.className = `egg ${egg.type}`;
+            eggElement.id = `egg-${egg.id}`;
+            eggElement.style.left = egg.x + '%';
+            eggElement.style.top = egg.position + 'px';
+            eggElement.textContent = egg.emoji;
+            eggElement.style.animationDuration = (500 / egg.speed) + 's';
+            
+            canvas.appendChild(eggElement);
+        }
+
+        function checkCollision(egg) {
+            const basketLeft = gameState.basketPosition;
+            const basketRight = basketLeft + 20; // basket width in percentage
+            const eggLeft = egg.x;
+            const eggRight = eggLeft + 8; // egg width in percentage
+            
+            return (egg.position >= 400 && egg.position <= 460) &&
+                   (eggLeft < basketRight && eggRight > basketLeft);
+        }
+
+        function catchEgg(egg, index) {
+            // Remove egg from game
+            gameState.eggs.splice(index, 1);
+            const eggElement = document.getElementById(`egg-${egg.id}`);
+            if (eggElement) {
+                eggElement.remove();
+            }
+            
+            // Update score and stats
+            gameState.score += egg.points * (gameState.combo + 1);
+            gameState.combo++;
+            gameState.stats.totalEggs++;
+            
+            // Process proof incubation
+            processProofIncubation(egg);
+            
+            // Create catch effect
+            createCatchEffect(egg);
+            
+            // Check level progression
+            checkLevelUp();
+            
+            updateUI();
+            updateIncubator();
+        }
+
+        function missEgg(egg, index) {
+            // Remove egg from game
+            gameState.eggs.splice(index, 1);
+            const eggElement = document.getElementById(`egg-${egg.id}`);
+            if (eggElement) {
+                eggElement.remove();
+            }
+            
+            // Reset combo and lose life
+            gameState.combo = 0;
+            gameState.lives--;
+            
+            // Check game over
+            if (gameState.lives <= 0) {
+                gameOver();
+            }
+            
+            updateUI();
+        }
+
+        function processProofIncubation(egg) {
+            switch (egg.effect) {
+                case 'basicProofFragment':
+                    gameState.proofIncubator.regularFragments++;
+                    break;
+                case 'witnessFragment':
+                    gameState.proofIncubator.witnessFragments++;
+                    break;
+                case 'completeProof':
+                    gameState.proofIncubator.completeProofs++;
+                    gameState.stats.totalProofs++;
+                    break;
+            }
+            
+            // Check for incubation combinations
+            checkIncubationCombinations();
+        }
+
+        function checkIncubationCombinations() {
+            // 5 regular fragments = 1 witness fragment
+            while (gameState.proofIncubator.regularFragments >= 5) {
+                gameState.proofIncubator.regularFragments -= 5;
+                gameState.proofIncubator.witnessFragments++;
+                showIncubationSuccess('Witness Fragment Hatched!');
+            }
+            
+            // 3 witness fragments = 1 complete proof
+            while (gameState.proofIncubator.witnessFragments >= 3) {
+                gameState.proofIncubator.witnessFragments -= 3;
+                gameState.proofIncubator.completeProofs++;
+                gameState.stats.totalProofs++;
+                showIncubationSuccess('Complete Proof Hatched!');
+                generateMasterProof();
+            }
+        }
+
+        function showIncubationSuccess(message) {
+            // Create floating text effect
+            const canvas = document.getElementById('gameCanvas');
+            const text = document.createElement('div');
+            text.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: var(--accent);
+                font-size: 1.5rem;
+                font-weight: bold;
+                pointer-events: none;
+                z-index: 1000;
+                animation: floatUp 2s ease-out forwards;
+            `;
+            text.textContent = message;
+            canvas.appendChild(text);
+            
+            setTimeout(() => text.remove(), 2000);
+        }
+
+        function generateMasterProof() {
+            // Bonus score for generating complete proof
+            gameState.score += 500;
+            
+            // Create special effect
+            createProofEffect();
+        }
+
+        function createCatchEffect(egg) {
+            const canvas = document.getElementById('gameCanvas');
+            const colors = {
+                regular: '#6366f1',
+                golden: '#f59e0b',
+                crystal: '#8b5cf6'
+            };
+            
+            // Create particles
+            for (let i = 0; i < 8; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = egg.x + '%';
+                particle.style.top = egg.position + 'px';
+                particle.style.background = colors[egg.type];
+                particle.style.animationDelay = (i * 0.1) + 's';
+                
+                canvas.appendChild(particle);
+                
+                setTimeout(() => particle.remove(), 1000);
+            }
+        }
+
+        function createProofEffect() {
+            const canvas = document.getElementById('gameCanvas');
+            
+            // Create proof completion effect
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.background = '#10b981';
+                particle.style.animationDelay = (i * 0.05) + 's';
+                
+                canvas.appendChild(particle);
+                
+                setTimeout(() => particle.remove(), 1000);
+            }
+        }
+
+        function checkLevelUp() {
+            const nextLevelScore = gameState.level * 1000;
+            
+            if (gameState.score >= nextLevelScore) {
+                gameState.level++;
+                gameState.gameSpeed *= 1.1;
+                gameState.spawnRate = Math.max(800, gameState.spawnRate * 0.9);
+                
+                // Restart spawn timer with new rate
+                clearInterval(spawnTimer);
+                spawnTimer = setInterval(spawnEgg, gameState.spawnRate);
+                
+                // Show level up effect
+                showLevelUpEffect();
+            }
+        }
+
+        function showLevelUpEffect() {
+            const canvas = document.getElementById('gameCanvas');
+            const text = document.createElement('div');
+            text.style.cssText = `
+                position: absolute;
+                top: 30%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: var(--warning);
+                font-size: 2rem;
+                font-weight: bold;
+                pointer-events: none;
+                z-index: 1000;
+                animation: levelUpPulse 3s ease-out forwards;
+            `;
+            text.textContent = `Level ${gameState.level}!`;
+            canvas.appendChild(text);
+            
+            setTimeout(() => text.remove(), 3000);
+        }
+
+        function gameOver() {
+            gameState.isGameRunning = false;
+            
+            // Clear intervals
+            clearInterval(gameLoop);
+            clearInterval(spawnTimer);
+            
+            // Update personal best
+            if (gameState.score > gameState.stats.personalBest) {
+                gameState.stats.personalBest = gameState.score;
+                localStorage.setItem('zk-egg-catcher-best', gameState.score.toString());
+            }
+            
+            // Show game over modal
+            showGameOverModal();
+        }
+
+        function showGameOverModal() {
+            const modal = document.getElementById('gameOverModal');
+            const modalIcon = document.getElementById('modalIcon');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalDescription = document.getElementById('modalDescription');
+            
+            // Set modal content based on performance
+            if (gameState.score >= 5000) {
+                modalIcon.textContent = '🏆';
+                modalTitle.textContent = 'Proof Master!';
+                modalDescription.textContent = 'Outstanding! You\'ve mastered the art of Zero-Knowledge proof incubation!';
+            } else if (gameState.score >= 2000) {
+                modalIcon.textContent = '🌟';
+                modalTitle.textContent = 'Excellent Work!';
+                modalDescription.textContent = 'Great job! You\'re becoming a skilled proof incubator!';
+            } else {
+                modalIcon.textContent = '🥚';
+                modalTitle.textContent = 'Good Try!';
+                modalDescription.textContent = 'Keep practicing! Every egg caught teaches you more about ZK proofs!';
+            }
+            
+            // Update modal stats
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('finalLevel').textContent = gameState.level;
+            document.getElementById('totalEggs').textContent = gameState.stats.totalEggs;
+            document.getElementById('totalProofs').textContent = gameState.stats.totalProofs;
+            
+            modal.classList.add('show');
+        }
+
+        function updateUI() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('level').textContent = gameState.level;
+            document.getElementById('combo').textContent = gameState.combo;
+            document.getElementById('lives').textContent = '❤️'.repeat(gameState.lives) + '💔'.repeat(3 - gameState.lives);
+        }
+
+        function updateIncubator() {
+            document.getElementById('regularCount').textContent = gameState.proofIncubator.regularFragments;
+            document.getElementById('witnessCount').textContent = gameState.proofIncubator.witnessFragments;
+            document.getElementById('proofsCount').textContent = gameState.proofIncubator.completeProofs;
+            
+            // Update incubator visual states
+            const items = ['regularFragments', 'witnessFragments', 'completeProofs'];
+            items.forEach(item => {
+                const element = document.getElementById(item);
+                const count = gameState.proofIncubator[item.replace('Fragments', '').replace('s', '')];
+                
+                element.classList.remove('active', 'hatching');
+                if (count > 0) {
+                    element.classList.add('active');
+                }
+            });
+        }
+
+        function updatePersonalBest() {
+            document.getElementById('personalBest').textContent = gameState.stats.personalBest;
+        }
+
+        function shareScore() {
+            const text = `I just scored ${gameState.score} points in ZK Egg Catcher! 🥚\n\nLevel: ${gameState.level}\nEggs Caught: ${gameState.stats.totalEggs}\nProofs Generated: ${gameState.stats.totalProofs}\n\nCan you beat my score?`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'ZK Egg Catcher Score',
+                    text: text,
+                    url: window.location.href
+                });
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(text + '\n' + window.location.href);
+                alert('Score copied to clipboard!');
+            } else {
+                alert('Share this: ' + text);
+            }
+        }
+
+        function playAgain() {
+            document.getElementById('gameOverModal').classList.remove('show');
+            resetGame();
+        }
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes floatUp {
+                0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                100% { opacity: 0; transform: translate(-50%, -150%) scale(1.2); }
+            }
+            
+            @keyframes levelUpPulse {
+                0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+                20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+                80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Close modal when clicking outside
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('show');
+            }
+        });
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.key === 'Spacebar') {
+                e.preventDefault();
+                if (!gameState.isGameRunning) {
+                    startGame();
+                } else {
+                    pauseGame();
+                }
+            } else if (e.key === 'r' || e.key === 'R') {
+                resetGame();
+            }
+        });
+
+        // Enhanced error handling
+        window.addEventListener('error', (e) => {
+            console.error('ZK Egg Catcher error:', e.error);
+            if (gameState.isGameRunning) {
+                try {
+                    resetGame();
+                } catch (resetError) {
+                    console.error('Failed to reset game:', resetError);
+                }
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            clearInterval(gameLoop);
+            clearInterval(spawnTimer);
+        });
+
+        console.log('🥚 ZK Egg Catcher loaded successfully!');
+        console.log('Controls: Mouse/touch to move basket, Space to pause, R to reset');
+    </script>
+</body>
+</html>
+            

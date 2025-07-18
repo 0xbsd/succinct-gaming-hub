@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZK Sudoku - Prove Your Solution Without Revealing It</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --accent: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --dark: #0f172a;
+            --dark-lighter: #1e293b;
+            --dark-card: #334155;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --border: #475569;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--dark);
+            color: var(--text);
+            min-height: 100vh;
+            padding-top: 80px;
+        }
+
+        /* Navigation */
+        .nav-header {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--text);
+        }
+
+        /* Main Container */
+        .game-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        /* Header */
+        .game-header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .game-title {
+            font-size: 3rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .game-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-dim);
+        }
+
+        /* Main Game Area */
+        .game-board-container {
+            background: var(--dark-lighter);
+            border: 2px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+        }
+
+        /* Sudoku Board */
+        .sudoku-board {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 2px;
+            background: var(--border);
+            border: 3px solid var(--border);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            max-width: 540px;
+            margin: 0 auto;
+        }
+
+        .sudoku-cell {
+            aspect-ratio: 1;
+            background: var(--dark-card);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        /* 3x3 Grid Lines */
+        .sudoku-cell:nth-child(3n):not(:nth-child(9n)),
+        .sudoku-cell:nth-child(6n):not(:nth-child(9n)) {
+            border-right: 3px solid var(--border);
+        }
+
+        .sudoku-cell:nth-child(n+19):nth-child(-n+27),
+        .sudoku-cell:nth-child(n+46):nth-child(-n+54) {
+            border-bottom: 3px solid var(--border);
+        }
+
+        .sudoku-cell.given {
+            background: var(--dark);
+            color: var(--primary);
+            cursor: default;
+        }
+
+        .sudoku-cell.selected {
+            background: rgba(99, 102, 241, 0.2);
+            box-shadow: 0 0 0 2px var(--primary) inset;
+        }
+
+        .sudoku-cell.highlighted {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .sudoku-cell.error {
+            color: var(--error);
+            animation: shake 0.5s;
+        }
+
+        .sudoku-cell.correct {
+            color: var(--accent);
+        }
+
+        .sudoku-cell.hint {
+            color: var(--warning);
+            font-style: italic;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Number Pad */
+        .number-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            max-width: 300px;
+            margin: 2rem auto 0;
+        }
+
+        .number-btn {
+            padding: 1rem;
+            background: var(--dark-card);
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text);
+        }
+
+        .number-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .number-btn.clear {
+            grid-column: span 2;
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--error);
+        }
+
+        .number-btn.clear:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        /* Side Panel */
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .info-card {
+            background: var(--dark-lighter);
+            border: 2px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+        }
+
+        .info-card h3 {
+            margin-bottom: 1rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--text-dim);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* ZK Proof Section */
+        .zk-proof-section {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .proof-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--dark-card);
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .proof-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--error);
+            animation: pulse 2s infinite;
+        }
+
+        .proof-indicator.ready {
+            background: var(--warning);
+        }
+
+        .proof-indicator.verified {
+            background: var(--accent);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        /* Difficulty Selector */
+        .difficulty-selector {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .difficulty-btn {
+            padding: 0.5rem 1rem;
+            background: var(--dark-card);
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text);
+        }
+
+        .difficulty-btn.active {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary);
+        }
+
+        /* Success Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--dark-lighter);
+            border: 2px solid var(--accent);
+            border-radius: 1rem;
+            padding: 3rem;
+            text-align: center;
+            max-width: 500px;
+            animation: modalPop 0.3s ease;
+        }
+
+        @keyframes modalPop {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: bounce 1s ease infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Loader */
+        .loader {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .game-container {
+                grid-template-columns: 1fr;
+                padding: 0 1rem;
+            }
+
+            .sudoku-cell {
+                font-size: 1.2rem;
+            }
+
+            .game-title {
+                font-size: 2rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            body {
+                padding-top: 60px;
+            }
+
+            .game-container {
+                margin: 1rem auto;
+            }
+
+            .number-pad {
+                max-width: 250px;
+            }
+
+            .number-btn {
+                padding: 0.75rem;
+                font-size: 1.2rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav-header">
+        <div class="nav-content">
+            <a href="games.html" class="logo">
+                <span>🎮</span>
+                <span>ZK Gaming Hub</span>
+            </a>
+            <div class="nav-links">
+                <a href="/games.html" class="nav-link">← Back to Games</a>
+                <a href="/index.html" class="nav-link">Home</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="game-container">
+        <!-- Header -->
+        <div class="game-header">
+            <h1 class="game-title">🔢 ZK Sudoku</h1>
+            <p class="game-subtitle">Prove you solved it without revealing your solution!</p>
+        </div>
+
+        <!-- Main Game Board -->
+        <div class="game-board-container">
+            <div class="difficulty-selector">
+                <button class="difficulty-btn active" onclick="setDifficulty('easy')">Easy</button>
+                <button class="difficulty-btn" onclick="setDifficulty('medium')">Medium</button>
+                <button class="difficulty-btn" onclick="setDifficulty('hard')">Hard</button>
+            </div>
+
+            <div class="sudoku-board" id="sudokuBoard"></div>
+
+            <div class="number-pad">
+                <button class="number-btn" onclick="inputNumber(1)">1</button>
+                <button class="number-btn" onclick="inputNumber(2)">2</button>
+                <button class="number-btn" onclick="inputNumber(3)">3</button>
+                <button class="number-btn" onclick="inputNumber(4)">4</button>
+                <button class="number-btn" onclick="inputNumber(5)">5</button>
+                <button class="number-btn" onclick="inputNumber(6)">6</button>
+                <button class="number-btn" onclick="inputNumber(7)">7</button>
+                <button class="number-btn" onclick="inputNumber(8)">8</button>
+                <button class="number-btn" onclick="inputNumber(9)">9</button>
+                <button class="number-btn" onclick="showHint()">💡</button>
+                <button class="number-btn clear" onclick="clearCell()">Clear</button>
+            </div>
+
+            <div class="zk-proof-section">
+                <div class="proof-status">
+                    <div class="proof-indicator" id="proofIndicator"></div>
+                    <span id="proofStatus">Fill the grid to generate proof</span>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="resetGame()">
+                        <span>🔄</span>
+                        <span>New Game</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="generateProof()" id="proofBtn" disabled>
+                        <span>🔐</span>
+                        <span>Generate ZK Proof</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Side Panel -->
+        <div class="side-panel">
+            <!-- Stats Card -->
+            <div class="info-card">
+                <h3>📊 Game Stats</h3>
+                <div class="stat-row">
+                    <span class="stat-label">Time</span>
+                    <span class="stat-value" id="timer">00:00</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Moves</span>
+                    <span class="stat-value" id="moves">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Hints Used</span>
+                    <span class="stat-value" id="hints">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Difficulty</span>
+                    <span class="stat-value" id="difficultyLabel">Easy</span>
+                </div>
+            </div>
+
+            <!-- ZK Info Card -->
+            <div class="info-card">
+                <h3>🔐 ZK Concept</h3>
+                <p style="color: var(--text-dim); font-size: 0.9rem; line-height: 1.5;">
+                    In ZK Sudoku, you can prove you've solved the puzzle correctly without revealing your actual solution! 
+                    This demonstrates how zero-knowledge proofs work in real applications.
+                </p>
+                <div style="margin-top: 1rem; padding: 1rem; background: var(--dark-card); border-radius: 0.5rem;">
+                    <p style="font-size: 0.875rem; color: var(--text-dim);">
+                        <strong>Proof contains:</strong><br>
+                        ✓ Valid solution exists<br>
+                        ✓ All rules followed<br>
+                        ✗ No actual numbers revealed
+                    </p>
+                </div>
+            </div>
+
+            <!-- Progress Card -->
+            <div class="info-card">
+                <h3>🎯 Progress</h3>
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.9rem;">Completion</span>
+                        <span style="font-size: 0.9rem; color: var(--primary);" id="progressText">0%</span>
+                    </div>
+                    <div style="background: var(--dark-card); height: 8px; border-radius: 4px; overflow: hidden;">
+                        <div id="progressBar" style="height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Empty Cells</span>
+                    <span class="stat-value" id="emptyCells">81</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-content">
+            <div class="success-icon">🎉</div>
+            <h2 style="font-size: 2rem; margin-bottom: 1rem;">Puzzle Solved!</h2>
+            <p style="color: var(--text-dim); margin-bottom: 2rem;">
+                You've successfully generated a Zero-Knowledge proof of your solution!
+            </p>
+            
+            <div style="background: var(--dark-card); padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 2rem; text-align: left;">
+                <h4 style="color: var(--primary); margin-bottom: 1rem;">📜 ZK Proof Generated</h4>
+                <div style="font-family: monospace; font-size: 0.875rem; color: var(--text-dim); word-break: break-all;">
+                    proof_hash: 0x7f3a9b2c8d4e5f6a1b2c3d4e...
+                </div>
+                <div style="margin-top: 1rem;">
+                    <div class="stat-row">
+                        <span class="stat-label">Time</span>
+                        <span class="stat-value" id="finalTime">00:00</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Moves</span>
+                        <span class="stat-value" id="finalMoves">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">ZK Points Earned</span>
+                        <span class="stat-value" style="color: var(--accent);" id="pointsEarned">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-secondary" onclick="shareProof()">
+                    <span>📋</span>
+                    <span>Share Proof</span>
+                </button>
+                <button class="btn btn-primary" onclick="newGame()">
+                    <span>New Game</span>
+                    <span>→</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/zkapi-mock.js"></script>
+    <script>
+        // Game State
+        let gameState = {
+            board: Array(81).fill(0),
+            solution: Array(81).fill(0),
+            given: Array(81).fill(false),
+            selectedCell: null,
+            difficulty: 'easy',
+            moves: 0,
+            hints: 0,
+            startTime: Date.now(),
+            isComplete: false
+        };
+
+        // Timer
+        let timerInterval;
+
+        // Difficulty settings
+        const difficultyLevels = {
+            easy: 40,    // 40 given numbers
+            medium: 30,  // 30 given numbers
+            hard: 20     // 20 given numbers
+        };
+
+        // Initialize game
+        document.addEventListener('DOMContentLoaded', () => {
+            initGame();
+            startTimer();
+        });
+
+        function initGame() {
+            try {
+                generateSudoku();
+                renderBoard();
+                updateStats();
+            } catch (error) {
+                console.error('Failed to initialize game:', error);
+                setTimeout(initGame, 1000);
+            }
+        }
+
+        // Generate a valid Sudoku puzzle
+        function generateSudoku() {
+            // Create a complete valid solution
+            const solution = generateCompleteSudoku();
+            gameState.solution = [...solution];
+            
+            // Remove numbers based on difficulty
+            const cellsToKeep = difficultyLevels[gameState.difficulty];
+            const cellsToRemove = 81 - cellsToKeep;
+            
+            gameState.board = [...solution];
+            gameState.given = Array(81).fill(true);
+            
+            // Randomly remove cells
+            const indices = Array.from({length: 81}, (_, i) => i);
+            shuffleArray(indices);
+            
+            for (let i = 0; i < cellsToRemove; i++) {
+                const idx = indices[i];
+                gameState.board[idx] = 0;
+                gameState.given[idx] = false;
+            }
+        }
+
+        // Generate a complete valid Sudoku
+        function generateCompleteSudoku() {
+            const board = Array(81).fill(0);
+            
+            try {
+                // Fill diagonal 3x3 boxes first
+                for (let box = 0; box < 9; box += 4) {
+                    fillBox(board, box);
+                }
+                
+                // Solve the rest
+                if (!solveSudoku(board)) {
+                    return generateCompleteSudoku();
+                }
+                
+                return board;
+            } catch (error) {
+                console.error('Error generating Sudoku:', error);
+                // Fallback puzzle
+                return [
+                    5,3,0,0,7,0,0,0,0,
+                    6,0,0,1,9,5,0,0,0,
+                    0,9,8,0,0,0,0,6,0,
+                    8,0,0,0,6,0,0,0,3,
+                    4,0,0,8,0,3,0,0,1,
+                    7,0,0,0,2,0,0,0,6,
+                    0,6,0,0,0,0,2,8,0,
+                    0,0,0,4,1,9,0,0,5,
+                    0,0,0,0,8,0,0,7,9
+                ];
+            }
+        }
+
+        // Fill a 3x3 box with random valid numbers
+        function fillBox(board, boxNum) {
+            const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+            shuffleArray(numbers);
+            
+            const startRow = Math.floor(boxNum / 3) * 3;
+            const startCol = (boxNum % 3) * 3;
+            
+            let idx = 0;
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    const pos = (startRow + r) * 9 + (startCol + c);
+                    board[pos] = numbers[idx++];
+                }
+            }
+        }
+
+        // Sudoku solver using backtracking
+        function solveSudoku(board) {
+            const emptyPos = findEmpty(board);
+            if (emptyPos === -1) return true;
+            
+            const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+            shuffleArray(numbers);
+            
+            for (const num of numbers) {
+                if (isValidMove(board, emptyPos, num)) {
+                    board[emptyPos] = num;
+                    
+                    if (solveSudoku(board)) {
+                        return true;
+                    }
+                    
+                    board[emptyPos] = 0;
+                }
+            }
+            
+            return false;
+        }
+
+        function findEmpty(board) {
+            for (let i = 0; i < 81; i++) {
+                if (board[i] === 0) return i;
+            }
+            return -1;
+        }
+
+        function isValidMove(board, pos, num) {
+            try {
+                // Check row
+                const row = Math.floor(pos / 9);
+                for (let c = 0; c < 9; c++) {
+                    if (board[row * 9 + c] === num) return false;
+                }
+                
+                // Check column
+                const col = pos % 9;
+                for (let r = 0; r < 9; r++) {
+                    if (board[r * 9 + col] === num) return false;
+                }
+                
+                // Check 3x3 box
+                const boxRow = Math.floor(row / 3) * 3;
+                const boxCol = Math.floor(col / 3) * 3;
+                for (let r = 0; r < 3; r++) {
+                    for (let c = 0; c < 3; c++) {
+                        if (board[(boxRow + r) * 9 + (boxCol + c)] === num) return false;
+                    }
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Error in isValidMove:', error);
+                return false;
+            }
+        }
+
+        // Render the game board
+        function renderBoard() {
+            const boardEl = document.getElementById('sudokuBoard');
+            if (!boardEl) return;
+            
+            boardEl.innerHTML = '';
+            
+            for (let i = 0; i < 81; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'sudoku-cell';
+                cell.dataset.index = i;
+                
+                if (gameState.given[i]) {
+                    cell.classList.add('given');
+                    cell.textContent = gameState.board[i];
+                } else if (gameState.board[i] > 0) {
+                    cell.textContent = gameState.board[i];
+                }
+                
+                cell.addEventListener('click', () => selectCell(i));
+                boardEl.appendChild(cell);
+            }
+            
+            updateProgress();
+        }
+
+        // Cell selection
+        function selectCell(index) {
+            if (gameState.given[index] || gameState.isComplete) return;
+            
+            // Clear previous selection
+            document.querySelectorAll('.sudoku-cell').forEach(cell => {
+                cell.classList.remove('selected', 'highlighted');
+            });
+            
+            gameState.selectedCell = index;
+            const cells = document.querySelectorAll('.sudoku-cell');
+            if (cells[index]) {
+                cells[index].classList.add('selected');
+                highlightRelatedCells(index);
+            }
+        }
+
+        function highlightRelatedCells(index) {
+            const row = Math.floor(index / 9);
+            const col = index % 9;
+            const boxRow = Math.floor(row / 3) * 3;
+            const boxCol = Math.floor(col / 3) * 3;
+            
+            const cells = document.querySelectorAll('.sudoku-cell');
+            
+            // Highlight row and column
+            for (let i = 0; i < 9; i++) {
+                if (cells[row * 9 + i]) cells[row * 9 + i].classList.add('highlighted');
+                if (cells[i * 9 + col]) cells[i * 9 + col].classList.add('highlighted');
+            }
+            
+            // Highlight 3x3 box
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    const cellIndex = (boxRow + r) * 9 + (boxCol + c);
+                    if (cells[cellIndex]) cells[cellIndex].classList.add('highlighted');
+                }
+            }
+        }
+
+        // Input number
+        function inputNumber(num) {
+            if (gameState.selectedCell === null || gameState.isComplete) return;
+            if (gameState.given[gameState.selectedCell]) return;
+            
+            const oldValue = gameState.board[gameState.selectedCell];
+            gameState.board[gameState.selectedCell] = num;
+            
+            const cell = document.querySelector(`[data-index="${gameState.selectedCell}"]`);
+            if (cell) {
+                cell.textContent = num;
+                cell.classList.remove('error', 'hint');
+                
+                // Check if valid
+                if (!isValidMove(gameState.board, gameState.selectedCell, num)) {
+                    cell.classList.add('error');
+                }
+                
+                if (oldValue === 0) {
+                    gameState.moves++;
+                    updateStats();
+                }
+                
+                updateProgress();
+                checkComplete();
+            }
+        }
+
+        // Clear cell
+        function clearCell() {
+            if (gameState.selectedCell === null || gameState.isComplete) return;
+            if (gameState.given[gameState.selectedCell]) return;
+            
+            gameState.board[gameState.selectedCell] = 0;
+            
+            const cell = document.querySelector(`[data-index="${gameState.selectedCell}"]`);
+            if (cell) {
+                cell.textContent = '';
+                cell.classList.remove('error', 'hint');
+            }
+            
+            updateProgress();
+        }
+
+        // Show hint
+        function showHint() {
+            if (gameState.selectedCell === null || gameState.isComplete) return;
+            if (gameState.given[gameState.selectedCell]) return;
+            if (gameState.board[gameState.selectedCell] !== 0) return;
+            
+            const correctValue = gameState.solution[gameState.selectedCell];
+            gameState.board[gameState.selectedCell] = correctValue;
+            
+            const cell = document.querySelector(`[data-index="${gameState.selectedCell}"]`);
+            if (cell) {
+                cell.textContent = correctValue;
+                cell.classList.add('hint');
+            }
+            
+            gameState.hints++;
+            updateStats();
+            updateProgress();
+            checkComplete();
+        }
+
+        // Check if puzzle is complete
+        function checkComplete() {
+            try {
+                // Check if all cells are filled
+                const emptyCells = gameState.board.filter(val => val === 0).length;
+                if (emptyCells > 0) return;
+                
+                // Check if solution is valid
+                for (let i = 0; i < 81; i++) {
+                    if (gameState.board[i] !== gameState.solution[i]) {
+                        return;
+                    }
+                }
+                
+                gameState.isComplete = true;
+                const proofBtn = document.getElementById('proofBtn');
+                const proofIndicator = document.getElementById('proofIndicator');
+                const proofStatus = document.getElementById('proofStatus');
+                
+                if (proofBtn) proofBtn.disabled = false;
+                if (proofIndicator) proofIndicator.classList.add('ready');
+                if (proofStatus) proofStatus.textContent = 'Solution valid! Ready to generate proof';
+                
+            } catch (error) {
+                console.error('Error checking completion:', error);
+            }
+        }
+
+        // Generate ZK Proof
+        function generateProof() {
+            if (!gameState.isComplete) return;
+            
+            const btn = document.getElementById('proofBtn');
+            if (!btn) return;
+            
+            btn.innerHTML = '<span class="loader"></span><span>Generating...</span>';
+            btn.disabled = true;
+            
+            // Simulate proof generation
+            setTimeout(() => {
+                const time = document.getElementById('timer')?.textContent || '00:00';
+                const points = calculatePoints();
+                
+                const finalTime = document.getElementById('finalTime');
+                const finalMoves = document.getElementById('finalMoves');
+                const pointsEarned = document.getElementById('pointsEarned');
+                
+                if (finalTime) finalTime.textContent = time;
+                if (finalMoves) finalMoves.textContent = gameState.moves;
+                if (pointsEarned) pointsEarned.textContent = points;
+                
+                const proofIndicator = document.getElementById('proofIndicator');
+                const proofStatus = document.getElementById('proofStatus');
+                
+                if (proofIndicator) proofIndicator.classList.add('verified');
+                if (proofStatus) proofStatus.textContent = 'Proof verified!';
+                
+                // Show success modal
+                setTimeout(() => {
+                    const modal = document.getElementById('successModal');
+                    if (modal) modal.classList.add('show');
+                }, 500);
+            }, 2000);
+        }
+
+        // Calculate points
+        function calculatePoints() {
+            let points = 100; // Base points
+            
+            // Difficulty bonus
+            if (gameState.difficulty === 'medium') points += 50;
+            if (gameState.difficulty === 'hard') points += 100;
+            
+            // Time bonus (under 5 minutes)
+            const timeInSeconds = Math.floor((Date.now() - gameState.startTime) / 1000);
+            if (timeInSeconds < 300) points += 50;
+            
+            // Moves efficiency bonus
+            if (gameState.moves < 100) points += 30;
+            
+            // Penalty for hints
+            points -= gameState.hints * 10;
+            
+            return Math.max(points, 10); // Minimum 10 points
+        }
+
+        // Update statistics
+        function updateStats() {
+            const movesEl = document.getElementById('moves');
+            const hintsEl = document.getElementById('hints');
+            const difficultyEl = document.getElementById('difficultyLabel');
+            
+            if (movesEl) movesEl.textContent = gameState.moves;
+            if (hintsEl) hintsEl.textContent = gameState.hints;
+            if (difficultyEl) {
+                difficultyEl.textContent = gameState.difficulty.charAt(0).toUpperCase() + gameState.difficulty.slice(1);
+            }
+        }
+
+        // Update progress
+        function updateProgress() {
+            const filledCells = gameState.board.filter(val => val > 0).length;
+            const progress = Math.round((filledCells / 81) * 100);
+            const emptyCells = 81 - filledCells;
+            
+            const progressText = document.getElementById('progressText');
+            const progressBar = document.getElementById('progressBar');
+            const emptyCellsEl = document.getElementById('emptyCells');
+            
+            if (progressText) progressText.textContent = `${progress}%`;
+            if (progressBar) progressBar.style.width = `${progress}%`;
+            if (emptyCellsEl) emptyCellsEl.textContent = emptyCells;
+        }
+
+        // Timer
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                const timerEl = document.getElementById('timer');
+                if (timerEl) {
+                    timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+            }, 1000);
+        }
+
+        // Set difficulty
+        function setDifficulty(level) {
+            if (gameState.isComplete) return;
+            
+            gameState.difficulty = level;
+            
+            // Update UI
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Find the clicked button
+            const clickedBtn = Array.from(document.querySelectorAll('.difficulty-btn'))
+                .find(btn => btn.textContent.toLowerCase() === level);
+            if (clickedBtn) {
+                clickedBtn.classList.add('active');
+            }
+            
+            resetGame();
+        }
+
+        // Reset game
+        function resetGame() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            gameState = {
+                board: Array(81).fill(0),
+                solution: Array(81).fill(0),
+                given: Array(81).fill(false),
+                selectedCell: null,
+                difficulty: gameState.difficulty,
+                moves: 0,
+                hints: 0,
+                startTime: Date.now(),
+                isComplete: false
+            };
+            
+            initGame();
+            startTimer();
+            
+            // Reset UI
+            const proofBtn = document.getElementById('proofBtn');
+            const proofIndicator = document.getElementById('proofIndicator');
+            const proofStatus = document.getElementById('proofStatus');
+            
+            if (proofBtn) {
+                proofBtn.disabled = true;
+                proofBtn.innerHTML = '<span>🔐</span><span>Generate ZK Proof</span>';
+            }
+            if (proofIndicator) {
+                proofIndicator.classList.remove('ready', 'verified');
+            }
+            if (proofStatus) {
+                proofStatus.textContent = 'Fill the grid to generate proof';
+            }
+        }
+
+        // New game (from modal)
+        function newGame() {
+            closeModal();
+            resetGame();
+        }
+
+        // Close modal
+        function closeModal() {
+            const modal = document.getElementById('successModal');
+            if (modal) modal.classList.remove('show');
+        }
+
+        // Share proof function
+        function shareProof() {
+            const text = `I just solved a ZK Sudoku puzzle! 🎉\n\nDifficulty: ${gameState.difficulty}\nMoves: ${gameState.moves}\nTime: ${document.getElementById('timer')?.textContent || '00:00'}\n\nCan you beat my score? Play at: ${window.location.origin}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'ZK Sudoku Achievement',
+                    text: text,
+                    url: window.location.origin
+                }).catch(console.error);
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('Achievement copied to clipboard!');
+                }).catch(() => {
+                    alert('Share this: ' + text);
+                });
+            } else {
+                alert('Share this: ' + text);
+            }
+        }
+
+        // Utility function to shuffle array
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (gameState.selectedCell === null || gameState.isComplete) return;
+            
+            if (e.key >= '1' && e.key <= '9') {
+                inputNumber(parseInt(e.key));
+            } else if (e.key === 'Delete' || e.key === 'Backspace' || e.key === '0') {
+                clearCell();
+            } else if (e.key === 'h' || e.key === 'H') {
+                showHint();
+            } else if (e.key === 'Escape') {
+                // Deselect current cell
+                gameState.selectedCell = null;
+                document.querySelectorAll('.sudoku-cell').forEach(cell => {
+                    cell.classList.remove('selected', 'highlighted');
+                });
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                // Navigate with arrow keys
+                e.preventDefault();
+                if (gameState.selectedCell !== null) {
+                    const row = Math.floor(gameState.selectedCell / 9);
+                    const col = gameState.selectedCell % 9;
+                    let newRow = row;
+                    let newCol = col;
+                    
+                    switch (e.key) {
+                        case 'ArrowUp': newRow = Math.max(0, row - 1); break;
+                        case 'ArrowDown': newRow = Math.min(8, row + 1); break;
+                        case 'ArrowLeft': newCol = Math.max(0, col - 1); break;
+                        case 'ArrowRight': newCol = Math.min(8, col + 1); break;
+                    }
+                    
+                    const newIndex = newRow * 9 + newCol;
+                    selectCell(newIndex);
+                }
+            }
+        });
+
+        // Enhanced error handling
+        window.addEventListener('error', function(e) {
+            console.error('Sudoku game error:', e.error);
+            try {
+                if (!gameState.board || gameState.board.length !== 81) {
+                    resetGame();
+                }
+            } catch (resetError) {
+                console.error('Failed to reset game after error:', resetError);
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+        });
+
+        // Save game progress
+        function saveGameProgress() {
+            try {
+                const gameData = {
+                    difficulty: gameState.difficulty,
+                    moves: gameState.moves,
+                    hints: gameState.hints,
+                    timeElapsed: Math.floor((Date.now() - gameState.startTime) / 1000),
+                    completed: gameState.isComplete,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('zk-sudoku-progress', JSON.stringify(gameData));
+            } catch (error) {
+                console.warn('Failed to save game progress:', error);
+            }
+        }
+
+        // Auto-save progress periodically
+        setInterval(saveGameProgress, 30000); // Save every 30 seconds
+
+        // Load previous best scores
+        function loadBestScores() {
+            try {
+                const savedData = localStorage.getItem('zk-sudoku-best');
+                if (savedData) {
+                    const bestScores = JSON.parse(savedData);
+                    console.log('Previous best scores:', bestScores);
+                }
+            } catch (error) {
+                console.warn('Failed to load best scores:', error);
+            }
+        }
+
+        // Save best score on completion
+        function saveBestScore() {
+            if (!gameState.isComplete) return;
+            
+            try {
+                const timeInSeconds = Math.floor((Date.now() - gameState.startTime) / 1000);
+                const score = {
+                    difficulty: gameState.difficulty,
+                    time: timeInSeconds,
+                    moves: gameState.moves,
+                    hints: gameState.hints,
+                    points: calculatePoints(),
+                    date: new Date().toISOString()
+                };
+                
+                let bestScores = JSON.parse(localStorage.getItem('zk-sudoku-best') || '{}');
+                if (!bestScores[gameState.difficulty] || 
+                    timeInSeconds < bestScores[gameState.difficulty].time) {
+                    bestScores[gameState.difficulty] = score;
+                    localStorage.setItem('zk-sudoku-best', JSON.stringify(bestScores));
+                }
+            } catch (error) {
+                console.warn('Failed to save best score:', error);
+            }
+        }
+
+        // Enhanced checkComplete function
+        const originalCheckComplete = checkComplete;
+        checkComplete = function() {
+            const wasComplete = gameState.isComplete;
+            originalCheckComplete();
+            if (!wasComplete && gameState.isComplete) {
+                saveBestScore();
+            }
+        };
+
+        // Initialize best scores loading
+        document.addEventListener('DOMContentLoaded', () => {
+            loadBestScores();
+        });
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('successModal');
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Add confetti effect for success
+        function createConfetti() {
+            const colors = ['#6366f1', '#8b5cf6', '#10b981', '#f59e0b'];
+            const confettiCount = 50;
+            
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.style.position = 'fixed';
+                confetti.style.width = '8px';
+                confetti.style.height = '8px';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.top = '-10px';
+                confetti.style.opacity = Math.random() + 0.5;
+                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                confetti.style.zIndex = '9999';
+                confetti.style.pointerEvents = 'none';
+                confetti.style.borderRadius = '50%';
+                
+                document.body.appendChild(confetti);
+                
+                // Animate falling
+                let pos = -10;
+                let side = (Math.random() - 0.5) * 2;
+                const fall = setInterval(() => {
+                    pos += 3;
+                    confetti.style.top = pos + 'px';
+                    confetti.style.left = parseFloat(confetti.style.left) + side + '%';
+                    confetti.style.transform = `rotate(${parseFloat(confetti.style.transform.match(/\d+/)[0]) + 10}deg)`;
+                    
+                    if (pos > window.innerHeight) {
+                        clearInterval(fall);
+                        confetti.remove();
+                    }
+                }, 20);
+            }
+        }
+
+        // Trigger confetti on puzzle completion
+        const originalGenerateProof = generateProof;
+        generateProof = function() {
+            createConfetti();
+            originalGenerateProof();
+        };
+
+        // Debug mode (can be removed in production)
+        window.debugSudoku = {
+            solveBoard: () => {
+                if (gameState.isComplete) return;
+                gameState.board = [...gameState.solution];
+                renderBoard();
+                checkComplete();
+            },
+            showSolution: () => {
+                console.log('Current board:', gameState.board);
+                console.log('Solution:', gameState.solution);
+            }
+        };
+
+        console.log('🔢 ZK Sudoku game loaded successfully!');
+        console.log('Use arrow keys to navigate, numbers 1-9 to input, H for hints, Escape to deselect');
+        console.log('Debug commands: debugSudoku.solveBoard(), debugSudoku.showSolution()');
+    </script>
+</body>
+</html>

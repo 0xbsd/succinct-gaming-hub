@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Matrix - Prove Your Memory Without Revealing</title>
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --accent: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --dark: #0f172a;
+            --dark-lighter: #1e293b;
+            --dark-card: #334155;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --border: #475569;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--dark);
+            color: var(--text);
+            min-height: 100vh;
+            padding-top: 80px;
+        }
+
+        /* Navigation */
+        .nav-header {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--text);
+        }
+
+        /* Main Container */
+        .game-container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(30, 41, 59, 0.9);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            margin: 2rem auto;
+            display: block;
+        }
+
+        /* Background Animation */
+        .bg-effect {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .matrix-rain {
+            position: absolute;
+            font-family: monospace;
+            font-size: 20px;
+            color: var(--primary);
+            opacity: 0.1;
+            animation: fall linear infinite;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh);
+            }
+        }
+
+        /* Header */
+        .game-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .game-title {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .game-subtitle {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+        }
+
+        /* Level Indicator */
+        .level-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .level-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--dark-card);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .level-stat-label {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        .level-stat-value {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Game Board */
+        .game-board {
+            margin: 2rem auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .matrix-grid {
+            display: grid;
+            gap: 0.75rem;
+            padding: 1.5rem;
+            background: var(--dark);
+            border-radius: 1rem;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .matrix-cell {
+            width: 80px;
+            height: 80px;
+            background: var(--dark-card);
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .matrix-cell::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .matrix-cell:hover {
+            transform: scale(1.05);
+            border-color: var(--primary);
+        }
+
+        .matrix-cell.shown {
+            background: var(--primary);
+            border-color: var(--primary);
+            animation: pulse 0.5s ease;
+        }
+
+        .matrix-cell.shown::before {
+            opacity: 0.3;
+        }
+
+        .matrix-cell.correct {
+            background: var(--accent);
+            border-color: var(--accent);
+            animation: correctPulse 0.5s ease;
+        }
+
+        .matrix-cell.incorrect {
+            background: var(--error);
+            border-color: var(--error);
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes correctPulse {
+            0% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.2) rotate(180deg); }
+            100% { transform: scale(1) rotate(360deg); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* Status Display */
+        .status-display {
+            text-align: center;
+            padding: 1.5rem;
+            background: var(--dark-card);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .status-message {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-timer {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Control Buttons */
+        .control-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ZK Proof Display */
+        .proof-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--dark-card);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .proof-title {
+            font-size: 1.2rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .proof-visualization {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .proof-item {
+            padding: 1rem;
+            background: var(--dark);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .proof-item-label {
+            font-size: 0.875rem;
+            color: var(--text-dim);
+            margin-bottom: 0.5rem;
+        }
+
+        .proof-item-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        /* Score Display */
+        .score-display {
+            position: fixed;
+            top: 100px;
+            right: 2rem;
+            background: var(--dark-lighter);
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem 1.5rem;
+            min-width: 200px;
+            z-index: 50;
+        }
+
+        .score-label {
+            font-size: 0.875rem;
+            color: var(--text-dim);
+        }
+
+        .score-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        /* Success Modal */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 2rem;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--dark-lighter);
+            border: 2px solid var(--accent);
+            border-radius: 1rem;
+            padding: 3rem;
+            text-align: center;
+            max-width: 500px;
+            animation: modalSlide 0.3s ease;
+        }
+
+        @keyframes modalSlide {
+            from { 
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .matrix-cell {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+
+            .score-display {
+                position: static;
+                margin-bottom: 1rem;
+                order: -1;
+            }
+
+            .game-title {
+                font-size: 2rem;
+            }
+
+            .level-indicator {
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            body {
+                padding-top: 60px;
+            }
+
+            .game-container {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+        }
+
+        /* Loader */
+        .loader {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav-header">
+        <div class="nav-content">
+            <a href="games.html" class="logo">
+                <span>🎮</span>
+                <span>ZK Gaming Hub</span>
+            </a>
+            <div class="nav-links">
+                <a href="/games.html" class="nav-link">← Back to Games</a>
+                <a href="/index.html" class="nav-link">Home</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Background Effect -->
+    <div class="bg-effect" id="bgEffect"></div>
+
+    <!-- Score Display -->
+    <div class="score-display">
+        <div class="score-label">Total Score</div>
+        <div class="score-value" id="totalScore">0</div>
+    </div>
+
+    <!-- Main Game Container -->
+    <div class="game-container">
+        <!-- Header -->
+        <div class="game-header">
+            <h1 class="game-title">
+                <span>🧠</span>
+                <span>Memory Matrix</span>
+            </h1>
+            <p class="game-subtitle">Remember the pattern, prove your memory without revealing it!</p>
+        </div>
+
+        <!-- Level Indicator -->
+        <div class="level-indicator">
+            <div class="level-stat">
+                <span class="level-stat-label">Level</span>
+                <span class="level-stat-value" id="currentLevel">1</span>
+            </div>
+            <div class="level-stat">
+                <span class="level-stat-label">Pattern Size</span>
+                <span class="level-stat-value" id="patternSize">3</span>
+            </div>
+            <div class="level-stat">
+                <span class="level-stat-label">Grid</span>
+                <span class="level-stat-value" id="gridSize">3×3</span>
+            </div>
+            <div class="level-stat">
+                <span class="level-stat-label">Lives</span>
+                <span class="level-stat-value" id="lives">❤️❤️❤️</span>
+            </div>
+        </div>
+
+        <!-- Game Board -->
+        <div class="game-board">
+            <!-- Status Display -->
+            <div class="status-display">
+                <div class="status-message" id="statusMessage">Get ready...</div>
+                <div class="status-timer" id="statusTimer">3</div>
+            </div>
+
+            <!-- Matrix Grid -->
+            <div class="matrix-grid" id="matrixGrid"></div>
+
+            <!-- Control Buttons -->
+            <div class="control-buttons">
+                <button class="btn btn-secondary" onclick="showHint()" id="showBtn" disabled>
+                    <span>👁️</span>
+                    <span>Show Pattern</span>
+                </button>
+                <button class="btn btn-primary" onclick="startRound()" id="startBtn">
+                    <span>▶️</span>
+                    <span>Start Round</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ZK Proof Section -->
+        <div class="proof-section">
+            <h3 class="proof-title">🔐 Zero-Knowledge Memory Proof</h3>
+            <div class="proof-visualization">
+                <div class="proof-item">
+                    <div class="proof-item-label">Pattern Hash</div>
+                    <div class="proof-item-value" id="patternHash">-</div>
+                </div>
+                <div class="proof-item">
+                    <div class="proof-item-label">Accuracy</div>
+                    <div class="proof-item-value" id="accuracy">0%</div>
+                </div>
+                <div class="proof-item">
+                    <div class="proof-item-label">ZK Points</div>
+                    <div class="proof-item-value" id="zkPoints">0</div>
+                </div>
+            </div>
+            <p style="color: var(--text-dim); font-size: 0.875rem;">
+                Your memory pattern is hashed and verified without revealing the actual sequence!
+            </p>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <h2 style="font-size: 2rem; margin-bottom: 1rem;">🎉 Level Complete!</h2>
+            <p style="color: var(--text-dim); margin-bottom: 2rem;">
+                You've successfully proven your memory with Zero-Knowledge!
+            </p>
+            
+            <div style="background: var(--dark); padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 2rem;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; text-align: left;">
+                    <div>
+                        <div style="color: var(--text-dim); font-size: 0.875rem;">Level Completed</div>
+                        <div style="font-size: 1.5rem; color: var(--primary);" id="modalLevel">1</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-dim); font-size: 0.875rem;">Accuracy</div>
+                        <div style="font-size: 1.5rem; color: var(--accent);" id="modalAccuracy">100%</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-dim); font-size: 0.875rem;">Points Earned</div>
+                        <div style="font-size: 1.5rem; color: var(--warning);" id="modalPoints">100</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-dim); font-size: 0.875rem;">Total Score</div>
+                        <div style="font-size: 1.5rem; color: var(--primary);" id="modalTotal">100</div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="nextLevel()" style="width: 100%;">
+                <span>Next Level</span>
+                <span>→</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div class="modal" id="gameOverModal">
+        <div class="modal-content">
+            <h2 style="font-size: 2rem; margin-bottom: 1rem; color: var(--error);">💔 Game Over</h2>
+            <p style="color: var(--text-dim); margin-bottom: 2rem;">
+                You've run out of lives! Better luck next time.
+            </p>
+            
+            <div style="background: var(--dark); padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 2rem;">
+                <div style="text-align: left;">
+                    <div style="color: var(--text-dim); font-size: 0.875rem;">Final Score</div>
+                    <div style="font-size: 2rem; color: var(--primary);" id="finalScore">0</div>
+                </div>
+                <div style="margin-top: 1rem; text-align: left;">
+                    <div style="color: var(--text-dim); font-size: 0.875rem;">Highest Level</div>
+                    <div style="font-size: 1.5rem; color: var(--secondary);" id="highestLevel">1</div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="resetGame()" style="width: 100%;">
+                <span>🔄</span>
+                <span>Play Again</span>
+            </button>
+        </div>
+    </div>
+
+    <script src="js/zkapi-mock.js"></script>
+    <script>
+        // Game State
+        let gameState = {
+            level: 1,
+            gridSize: 3,
+            patternLength: 3,
+            pattern: [],
+            userPattern: [],
+            score: 0,
+            lives: 3,
+            isShowingPattern: false,
+            isPlayerTurn: false,
+            roundStartTime: 0
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            createBackgroundEffect();
+            createGrid();
+            updateUI();
+        });
+
+        // Create background matrix rain effect
+        function createBackgroundEffect() {
+            const bgEffect = document.getElementById('bgEffect');
+            for (let i = 0; i < 20; i++) {
+                const span = document.createElement('span');
+                span.className = 'matrix-rain';
+                span.style.left = Math.random() * 100 + '%';
+                span.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                span.style.animationDelay = Math.random() * 2 + 's';
+                span.textContent = Math.random() > 0.5 ? '0' : '1';
+                bgEffect.appendChild(span);
+            }
+        }
+
+        // Create grid
+        function createGrid() {
+            const grid = document.getElementById('matrixGrid');
+            grid.innerHTML = '';
+            grid.style.gridTemplateColumns = `repeat(${gameState.gridSize}, 1fr)`;
+            
+            const totalCells = gameState.gridSize * gameState.gridSize;
+            for (let i = 0; i < totalCells; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'matrix-cell';
+                cell.dataset.index = i;
+                cell.onclick = () => cellClicked(i);
+                grid.appendChild(cell);
+            }
+        }
+
+        // Start round
+        function startRound() {
+            gameState.pattern = generatePattern();
+            gameState.userPattern = [];
+            gameState.isShowingPattern = true;
+            gameState.isPlayerTurn = false;
+            
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('showBtn').disabled = true;
+            
+            // Countdown
+            let countdown = 3;
+            const timer = document.getElementById('statusTimer');
+            const message = document.getElementById('statusMessage');
+            
+            message.textContent = 'Get ready...';
+            timer.textContent = countdown;
+            
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    timer.textContent = countdown;
+                } else {
+                    clearInterval(countdownInterval);
+                    showPattern();
+                }
+            }, 1000);
+        }
+
+        // Generate random pattern
+        function generatePattern() {
+            const pattern = [];
+            const totalCells = gameState.gridSize * gameState.gridSize;
+            const indices = Array.from({length: totalCells}, (_, i) => i);
+            
+            // Shuffle and take required number
+            for (let i = indices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [indices[i], indices[j]] = [indices[j], indices[i]];
+            }
+            
+            return indices.slice(0, gameState.patternLength);
+        }
+
+        // Show pattern
+        function showPattern() {
+            const message = document.getElementById('statusMessage');
+            const timer = document.getElementById('statusTimer');
+            
+            message.textContent = 'Memorize the pattern!';
+            timer.textContent = '';
+            
+            // Clear any previous states
+            document.querySelectorAll('.matrix-cell').forEach(cell => {
+                cell.classList.remove('shown', 'correct', 'incorrect');
+                cell.textContent = '';
+            });
+            
+            // Show pattern cells
+            gameState.pattern.forEach((index, i) => {
+                setTimeout(() => {
+                    const cell = document.querySelector(`[data-index="${index}"]`);
+                    if (cell) {
+                        cell.classList.add('shown');
+                        cell.textContent = '⭐';
+                        
+                        // Hide after short time
+                        setTimeout(() => {
+                            cell.classList.remove('shown');
+                            cell.textContent = '';
+                        }, 800);
+                    }
+                }, i * 600);
+            });
+            
+            // Start player turn after showing pattern
+            setTimeout(() => {
+                startPlayerTurn();
+            }, gameState.pattern.length * 600 + 1000);
+        }
+
+        // Start player turn
+        function startPlayerTurn() {
+            gameState.isPlayerTurn = true;
+            gameState.roundStartTime = Date.now();
+            
+            const message = document.getElementById('statusMessage');
+            const timer = document.getElementById('statusTimer');
+            
+            message.textContent = 'Your turn! Repeat the pattern';
+            timer.textContent = '';
+            
+            // Enable show pattern button (costs a life)
+            document.getElementById('showBtn').disabled = false;
+        }
+
+        // Cell clicked
+        function cellClicked(index) {
+            if (!gameState.isPlayerTurn) return;
+            
+            // Check if already clicked
+            if (gameState.userPattern.includes(index)) return;
+            
+            const cell = document.querySelector(`[data-index="${index}"]`);
+            gameState.userPattern.push(index);
+            
+            if (gameState.pattern.includes(index)) {
+                cell.classList.add('correct');
+                cell.textContent = '✓';
+                
+                // Check if pattern is complete
+                if (gameState.userPattern.filter(i => gameState.pattern.includes(i)).length === gameState.pattern.length) {
+                    // All correct cells found
+                    roundComplete();
+                }
+            } else {
+                cell.classList.add('incorrect');
+                cell.textContent = '✗';
+                roundFailed();
+            }
+        }
+
+        // Round complete
+        function roundComplete() {
+            gameState.isPlayerTurn = false;
+            
+            const accuracy = 100;
+            const timeTaken = (Date.now() - gameState.roundStartTime) / 1000;
+            const points = calculatePoints(accuracy, timeTaken);
+            
+            gameState.score += points;
+            
+            // Update UI
+            updateUI();
+            updateProof(accuracy, points);
+            
+            // Show success modal
+            document.getElementById('modalLevel').textContent = gameState.level;
+            document.getElementById('modalAccuracy').textContent = `${accuracy}%`;
+            document.getElementById('modalPoints').textContent = points;
+            document.getElementById('modalTotal').textContent = gameState.score;
+            
+            setTimeout(() => {
+                document.getElementById('successModal').classList.add('show');
+            }, 1000);
+        }
+
+        // Round failed
+        function roundFailed() {
+            gameState.isPlayerTurn = false;
+            gameState.lives--;
+            
+            const message = document.getElementById('statusMessage');
+            message.textContent = 'Incorrect! Try again.';
+            
+            // Show correct pattern
+            setTimeout(() => {
+                gameState.pattern.forEach(index => {
+                    const cell = document.querySelector(`[data-index="${index}"]`);
+                    if (cell) {
+                        cell.classList.add('shown');
+                        cell.textContent = '⭐';
+                    }
+                });
+            }, 500);
+            
+            updateUI();
+            
+            if (gameState.lives <= 0) {
+                setTimeout(() => {
+                    gameOver();
+                }, 2000);
+            } else {
+                setTimeout(() => {
+                    resetRound();
+                }, 3000);
+            }
+        }
+
+        // Calculate points
+        function calculatePoints(accuracy, timeTaken) {
+            let points = gameState.level * 100;
+            
+            // Time bonus (under 5 seconds)
+            if (timeTaken < 5) {
+                points += 50;
+            }
+            
+            // Pattern complexity bonus
+            points += gameState.patternLength * 10;
+            
+            return points;
+        }
+
+        // Update UI
+        function updateUI() {
+            document.getElementById('currentLevel').textContent = gameState.level;
+            document.getElementById('patternSize').textContent = gameState.patternLength;
+            document.getElementById('gridSize').textContent = `${gameState.gridSize}×${gameState.gridSize}`;
+            document.getElementById('totalScore').textContent = gameState.score;
+            
+            // Update lives display
+            const livesDisplay = document.getElementById('lives');
+            livesDisplay.textContent = '❤️'.repeat(gameState.lives) + '💔'.repeat(3 - gameState.lives);
+        }
+
+        // Update proof visualization
+        function updateProof(accuracy, points) {
+            // Generate fake proof hash
+            const hash = '0x' + Math.random().toString(16).substr(2, 8);
+            document.getElementById('patternHash').textContent = hash;
+            document.getElementById('accuracy').textContent = `${accuracy}%`;
+            document.getElementById('zkPoints').textContent = points;
+        }
+
+        // Next level
+        function nextLevel() {
+            document.getElementById('successModal').classList.remove('show');
+            
+            gameState.level++;
+            
+            // Increase difficulty
+            if (gameState.level % 3 === 0) {
+                gameState.gridSize = Math.min(gameState.gridSize + 1, 6);
+                createGrid();
+            }
+            
+            gameState.patternLength = Math.min(gameState.patternLength + 1, gameState.gridSize * gameState.gridSize - 1);
+            
+            resetRound();
+            updateUI();
+        }
+
+        // Reset round
+        function resetRound() {
+            // Clear all cell states
+            document.querySelectorAll('.matrix-cell').forEach(cell => {
+                cell.classList.remove('shown', 'correct', 'incorrect');
+                cell.textContent = '';
+            });
+            
+            gameState.pattern = [];
+            gameState.userPattern = [];
+            gameState.isPlayerTurn = false;
+            gameState.isShowingPattern = false;
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('showBtn').disabled = true;
+            document.getElementById('statusMessage').textContent = 'Ready for next round!';
+            document.getElementById('statusTimer').textContent = '';
+        }
+
+        // Show pattern hint (costs a life)
+        function showHint() {
+            if (!gameState.isPlayerTurn || gameState.lives <= 1) return;
+            
+            gameState.lives--;
+            updateUI();
+            
+            // Briefly show pattern again
+            gameState.pattern.forEach((index, i) => {
+                setTimeout(() => {
+                    const cell = document.querySelector(`[data-index="${index}"]`);
+                    if (cell) {
+                        cell.classList.add('shown');
+                        cell.textContent = '⭐';
+                        
+                        setTimeout(() => {
+                            cell.classList.remove('shown');
+                            cell.textContent = '';
+                        }, 500);
+                    }
+                }, i * 200);
+            });
+        }
+
+        // Game over
+        function gameOver() {
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('highestLevel').textContent = gameState.level;
+            document.getElementById('gameOverModal').classList.add('show');
+        }
+
+        // Reset game
+        function resetGame() {
+            document.getElementById('gameOverModal').classList.remove('show');
+            
+            gameState = {
+                level: 1,
+                gridSize: 3,
+                patternLength: 3,
+                pattern: [],
+                userPattern: [],
+                score: 0,
+                lives: 3,
+                isShowingPattern: false,
+                isPlayerTurn: false,
+                roundStartTime: 0
+            };
+            
+            createGrid();
+            updateUI();
+            resetRound();
+        }
+
+        // Add keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !document.getElementById('startBtn').disabled) {
+                startRound();
+            } else if (e.key === 'h' && !document.getElementById('showBtn').disabled) {
+                showHint();
+            }
+        });
+
+        // Enhanced error handling
+        window.addEventListener('error', function(e) {
+            console.error('Memory Matrix error:', e.error);
+            // Don't break the game on errors
+            try {
+                // Reset to a safe state if needed
+                if (gameState.isPlayerTurn) {
+                    resetRound();
+                }
+            } catch (resetError) {
+                console.error('Failed to reset game after error:', resetError);
+            }
+        });
+
+        // Prevent memory leaks
+        window.addEventListener('beforeunload', function() {
+            // Clear any running intervals/timeouts
+            if (typeof countdownInterval !== 'undefined') {
+                clearInterval(countdownInterval);
+            }
+        });
+
+        // Add modal close functionality
+        function closeModal() {
+            document.getElementById('successModal').classList.remove('show');
+            document.getElementById('gameOverModal').classList.remove('show');
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal')) {
+                closeModal();
+            }
+        });
+
+        // Save game progress
+        function saveGameData() {
+            try {
+                const gameData = {
+                    highestLevel: gameState.level,
+                    totalScore: gameState.score,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('memory-matrix-progress', JSON.stringify(gameData));
+            } catch (error) {
+                console.warn('Failed to save game progress:', error);
+            }
+        }
+
+        // Load game progress
+        function loadGameData() {
+            try {
+                const savedData = localStorage.getItem('memory-matrix-progress');
+                if (savedData) {
+                    const gameData = JSON.parse(savedData);
+                    // Could show previous high score or achievements
+                    console.log('Previous best:', gameData);
+                }
+            } catch (error) {
+                console.warn('Failed to load game progress:', error);
+            }
+        }
+
+        // Initialize game data loading
+        document.addEventListener('DOMContentLoaded', () => {
+            loadGameData();
+        });
+
+        // Save progress when level completes
+        function levelComplete() {
+            roundComplete();
+            saveGameData();
+        }
+
+        // Performance optimization: Limit animation frame rate
+        let lastAnimationTime = 0;
+        function optimizedAnimation(callback) {
+            const now = Date.now();
+            if (now - lastAnimationTime > 16) { // ~60fps
+                lastAnimationTime = now;
+                callback();
+            }
+        }
+
+        console.log('🧠 Memory Matrix - Ready to test your memory!');
+    </script>
+</body>
+</html>
